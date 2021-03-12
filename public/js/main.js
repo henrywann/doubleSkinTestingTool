@@ -56,7 +56,13 @@ socket.on('checkComplete', ({playerId, alivePlayers}) => {
         var btn = document.getElementById(btnId);
         btn.disabled = true;
     }
-    alert(`Killed Player ${playerId}!`);
+    alivePlayers.forEach(e => {
+        if (e.playerId === playerId-1) {
+            const currentCard = e.card1 === '' ? e.card2: e.card1;
+            const currentId = currentCard ==='killer'? 'Bad': 'Good';
+            alert(`Player ${playerId}'s Current Identity is ${currentId}`);
+        }
+    });
 });
 
 // Message submit
@@ -163,14 +169,6 @@ function outputKillerSelection(alivePlayers) {
 }
 
 function checkPlayer(alivePlayers, checkedPlayerId) {
-    alivePlayers.forEach(e => {
-        if (e.playerId === checkedPlayerId-1) {
-            const currentCard = e.card1 === '' ? e.card2: e.card1;
-            const currentId = currentCard ==='killer'? 'Bad': 'Good';
-            alert(`Player ${checkedPlayerId}'s Current Identity is ${currentId}`);
-            break;
-        }
-    });
     socket.emit('checkPlayer', checkedPlayerId);
 }
 
