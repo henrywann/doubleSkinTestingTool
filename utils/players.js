@@ -62,6 +62,7 @@ function playerReady(id, currentPlayer) {
 }
 
 function killPlayer(playerId, round) {
+  console.log('entering kill player');
   if (roundAction[round-1]==undefined) {
     const killed = playerId;
     const checked = -1;
@@ -89,10 +90,25 @@ function checkPlayer(playerId, round) {
   }
 }
 
+function injectPlayer(playerId, round) {
+  if (roundAction[round-1]==undefined) {
+    const killed = -1;
+    const checked = -1;
+    const gunned = -1;
+    const injected = playerId;
+    roundAction.push({killed, checked, gunned, injected});
+  } else {
+    var thisRound = roundAction[round-1];
+    thisRound.injected = playerId;
+    roundAction[round-1] = thisRound;
+  }
+}
+
 
 module.exports = {
   playerJoin,
   playerReady,
   killPlayer,
-  checkPlayer
+  checkPlayer,
+  injectPlayer
 };

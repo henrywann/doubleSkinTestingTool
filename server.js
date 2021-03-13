@@ -6,7 +6,8 @@ const {
     playerJoin,
     playerReady,
     killPlayer,
-    checkPlayer
+    checkPlayer,
+    injectPlayer
 } = require('./utils/players');
 
 const app = express();
@@ -50,6 +51,7 @@ io.on('connection', socket => {
             io.emit('message', "Game Starting!");
             io.to('killerGroup').emit('killerAction', playerList);
             io.to('policeGroup').emit('policeAction', playerList);
+            io.to('doctor').emit('doctorAction', playerList);
         }
     });
 
@@ -61,6 +63,11 @@ io.on('connection', socket => {
     socket.on('checkPlayer', (playerId) => {
         checkPlayer(playerId, round);
         io.to('policeGroup').emit('checkComplete', ({playerId, alivePlayers}));
+    });
+
+    socket.on('injectPlayer', (playerId) => {
+        injectPlayer(playerId, round);
+        io.to('doctor').emit('injectComplete', ({playerId, alivePlayers}));
     });
 
     socket.on('voteReady', (votedPlayer) => {

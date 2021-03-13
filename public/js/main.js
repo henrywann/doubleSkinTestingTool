@@ -37,6 +37,22 @@ socket.on('policeAction', alivePlayers => {
     outputPoliceSelection(alivePlayers);
 });
 
+socket.on('doctorAction', alivePlayers => {
+    outputDoctorSelection(alivePlayers);
+});
+
+socket.on('injectComplete', ({playerId, alivePlayers}) => {
+    console.log('received injectComplete');
+    var i;
+    for (i=0; i<alivePlayers.length; i++) {
+        const btnId = `doctor${i+1}`;
+        var btn = document.getElementById(btnId);
+        btn.disabled = true;
+    }
+    alert(`Injected Player ${playerId}!`);
+});
+
+
 socket.on('killComplete', ({playerId, alivePlayers}) => {
     console.log('received killComplete');
     var i;
@@ -82,6 +98,48 @@ function outputIdentity(player) {
         card2: ${player.card2}
     </p>`;
     document.querySelector('.chat-messages').appendChild(div);
+}
+
+function outputDoctorSelection(alivePlayers) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = '<p class="text">Doctor Please Select a player<p>';
+    // document.querySelector('.chat-messages').appendChild(div);
+    alivePlayers.forEach(e =>{
+        // console.log(e);
+        div.insertAdjacentHTML('beforeEnd', `<button id="doctor${e.playerId+1}">${e.playerId+1}</button>`);
+    });
+    document.querySelector('.chat-messages').appendChild(div);
+
+    var doctorBtn1 = document.getElementById("doctor1");
+    doctorBtn1.addEventListener("click", function() {
+        injectPlayer('1');
+    });
+
+    var doctorBtn2 = document.getElementById("doctor2");
+    doctorBtn2.addEventListener("click", function() {
+        injectPlayer('2');
+    });
+
+    var doctorBtn3 = document.getElementById("doctor3");
+    doctorBtn3.addEventListener("click", function() {
+        injectPlayer('3');
+    });
+
+    var doctorBtn4 = document.getElementById("doctor4");
+    doctorBtn4.addEventListener("click", function() {
+        injectPlayer('4');
+    });
+
+    var doctorBtn5 = document.getElementById("doctor5");
+    doctorBtn5.addEventListener("click", function() {
+        injectPlayer('5');
+    });
+
+    var doctorBtn6 = document.getElementById("doctor6");
+    doctorBtn6.addEventListener("click", function() {
+        injectPlayer('6');
+    });
 }
 
 function outputPoliceSelection(alivePlayers) {
@@ -168,28 +226,23 @@ function outputKillerSelection(alivePlayers) {
     });
 }
 
+function injectPlayer(injectedPlayer) {
+    socket.emit('injectPlayer', injectedPlayer);
+}
+
 function checkPlayer(alivePlayers, checkedPlayerId) {
     socket.emit('checkPlayer', checkedPlayerId);
 }
 
 function killPlayer(playerId) {
+    console.log('killing player');
     socket.emit('killPlayer', playerId);
 }
 
-function killPlayer1() {
-    console.log('killing player 1');
-    socket.emit('killPlayer', '1');
-
-    // alivePlayers.forEach(e => {
-    //     if (e.playerId+1===playerId) {
-    //         if (e.card1!=='') {
-    //             e.card1='';
-    //         } else if (e.card2!=='') {
-    //             e.card2='';
-    //         }
-    //     }
-    // });
-}
+// function killPlayer1() {
+//     console.log('killing player 1');
+//     socket.emit('killPlayer', '1');
+// }
 
 function clickSwitchOrder() {
     console.log("switching order");
