@@ -5,9 +5,7 @@ const socketio = require('socket.io');
 const {
     playerJoin,
     playerReady,
-    killPlayer,
-    checkPlayer,
-    injectPlayer
+    playerAction
 } = require('./utils/players');
 
 const app = express();
@@ -46,28 +44,54 @@ io.on('connection', socket => {
         alivePlayers = playerList;
         // console.log(playerList);
         if (playerList.length==6) {
-            console.log("starting game!");
             round++;
+            console.log("starting game!");
+            const killerCount = io.nsps['/'].adapter.rooms['killerGroup']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['killerGroup']).length;
+            const policeCount = io.nsps['/'].adapter.rooms['policeGroup']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['policeGroup']).length;
+            const doctorCount = io.nsps['/'].adapter.rooms['doctor']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['doctor']).length;
+            const gunSmithCount = io.nsps['/'].adapter.rooms['gunSmith']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['gunSmith']).length;
             io.emit('message', "Game Starting!");
-            io.to('killerGroup').emit('killerAction', playerList);
-            io.to('policeGroup').emit('policeAction', playerList);
-            io.to('doctor').emit('doctorAction', playerList);
+            if (killerCount > 0) {
+                io.to('killerGroup').emit('killerAction', playerList);
+            } else {
+                // noKiller(round);
+            }
+            if (policeCount > 0) {
+                io.to('policeGroup').emit('policeAction', playerList);
+            } else {
+                // noPolice(round);
+            }
+            if (doctorCount > 0) {
+                io.to('doctor').emit('doctorAction', playerList);
+            } else {
+                // noDoctor(round);
+            }
+            if (gunSmithCount > 0) {
+                io.to('gunSmith').emit('gunSmithAction', playerList);
+            } else {
+                // noGunSmith(round);
+            }
         }
     });
 
     socket.on('killPlayer', (playerId) => {
-        killPlayer(playerId, round);
+        playerAction(playerId, 'kill', round);
         io.to('killerGroup').emit('killComplete', ({playerId, alivePlayers}));
     });
 
     socket.on('checkPlayer', (playerId) => {
-        checkPlayer(playerId, round);
+        playerAction(playerId, 'check', round);
         io.to('policeGroup').emit('checkComplete', ({playerId, alivePlayers}));
     });
 
     socket.on('injectPlayer', (playerId) => {
-        injectPlayer(playerId, round);
+        playerAction(playerId, 'inject', round);
         io.to('doctor').emit('injectComplete', ({playerId, alivePlayers}));
+    });
+
+    socket.on('gunPlayer', (playerId) => {
+        playerAction(playerId, 'gun', round);
+        io.to('gunSmith').emit('gunComplete', ({playerId, alivePlayers}));
     });
 
     socket.on('voteReady', (votedPlayer) => {

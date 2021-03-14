@@ -53,6 +53,7 @@ function assignPlayer(id, username) {
   const player = {id, username, card1, card2, side, poison, playerId};
 
   players.push(player);
+  console.log(`player: ${player}`);
   return player;
 }
 
@@ -61,54 +62,31 @@ function playerReady(id, currentPlayer) {
   return existingPlayers;
 }
 
-function killPlayer(playerId, round) {
-  console.log('entering kill player');
+function playerAction(playerId, action, round) {
   if (roundAction[round-1]==undefined) {
-    const killed = playerId;
-    const checked = -1;
-    const gunned = -1;
-    const injected = -1;
-    roundAction.push({killed, checked, gunned, injected});
+    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1};
+    roundAction.push(getThisRoundAction(thisRound, action, playerId));
   } else {
     var thisRound = roundAction[round-1];
+    roundAction[round-1] = getThisRoundAction(thisRound, action, playerId);
+  }
+}
+
+function getThisRoundAction(thisRound, action, playerId) {
+  if (action==='kill') {
     thisRound.killed = playerId;
-    roundAction[round-1] = thisRound;
-  }
-}
-
-function checkPlayer(playerId, round) {
-  if (roundAction[round-1]==undefined) {
-    const killed = -1;
-    const checked = playerId;
-    const gunned = -1;
-    const injected = -1;
-    roundAction.push({killed, checked, gunned, injected});
-  } else {
-    var thisRound = roundAction[round-1];
+  } else if (action==='check') {
     thisRound.checked = playerId;
-    roundAction[round-1] = thisRound;
-  }
-}
-
-function injectPlayer(playerId, round) {
-  if (roundAction[round-1]==undefined) {
-    const killed = -1;
-    const checked = -1;
-    const gunned = -1;
-    const injected = playerId;
-    roundAction.push({killed, checked, gunned, injected});
-  } else {
-    var thisRound = roundAction[round-1];
+  } else if (action==='gun') {
+    thisRound.gunned = playerId;
+  } else if (action==='inject') {
     thisRound.injected = playerId;
-    roundAction[round-1] = thisRound;
   }
+  return thisRound;
 }
-
 
 module.exports = {
   playerJoin,
   playerReady,
-  killPlayer,
-  checkPlayer,
-  injectPlayer
+  playerAction
 };

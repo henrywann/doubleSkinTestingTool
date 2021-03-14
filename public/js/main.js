@@ -41,6 +41,21 @@ socket.on('doctorAction', alivePlayers => {
     outputDoctorSelection(alivePlayers);
 });
 
+socket.on('gunSmithAction', alivePlayers => {
+    outputGunSmithSelection(alivePlayers);
+});
+
+socket.on('gunComplete', ({playerId, alivePlayers}) => {
+    console.log('received gunComplete');
+    var i;
+    for (i=0; i<alivePlayers.length; i++) {
+        const btnId = `gunSmith${i+1}`;
+        var btn = document.getElementById(btnId);
+        btn.disabled = true;
+    }
+    alert(`Gunned Player ${playerId}!`);
+});
+
 socket.on('injectComplete', ({playerId, alivePlayers}) => {
     console.log('received injectComplete');
     var i;
@@ -98,6 +113,48 @@ function outputIdentity(player) {
         card2: ${player.card2}
     </p>`;
     document.querySelector('.chat-messages').appendChild(div);
+}
+
+function outputGunSmithSelection(alivePlayers) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = '<p class="text">Doctor Please Select a player<p>';
+    // document.querySelector('.chat-messages').appendChild(div);
+    alivePlayers.forEach(e =>{
+        // console.log(e);
+        div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}">${e.playerId+1}</button>`);
+    });
+    document.querySelector('.chat-messages').appendChild(div);
+
+    var gunSmithBtn1 = document.getElementById("gunSmith1");
+    gunSmithBtn1.addEventListener("click", function() {
+        gunPlayer('1');
+    });
+
+    var gunSmithBtn2 = document.getElementById("gunSmith2");
+    gunSmithBtn2.addEventListener("click", function() {
+        gunPlayer('2');
+    });
+
+    var gunSmithBtn3 = document.getElementById("gunSmith3");
+    gunSmithBtn3.addEventListener("click", function() {
+        gunPlayer('3');
+    });
+
+    var gunSmithBtn4 = document.getElementById("gunSmith4");
+    gunSmithBtn4.addEventListener("click", function() {
+        gunPlayer('4');
+    });
+
+    var gunSmithBtn5 = document.getElementById("gunSmith5");
+    gunSmithBtn5.addEventListener("click", function() {
+        gunPlayer('5');
+    });
+
+    var gunSmithBtn6 = document.getElementById("gunSmith6");
+    gunSmithBtn6.addEventListener("click", function() {
+        gunPlayer('6');
+    });
 }
 
 function outputDoctorSelection(alivePlayers) {
@@ -235,8 +292,11 @@ function checkPlayer(alivePlayers, checkedPlayerId) {
 }
 
 function killPlayer(playerId) {
-    console.log('killing player');
     socket.emit('killPlayer', playerId);
+}
+
+function gunPlayer(playerId) {
+    socket.emit('gunPlayer', playerId);
 }
 
 // function killPlayer1() {
