@@ -5,7 +5,9 @@ const socketio = require('socket.io');
 const {
     playerJoin,
     playerReady,
-    playerAction
+    playerAction,
+    noPlayerAction,
+    isRoundOver
 } = require('./utils/players');
 
 const app = express();
@@ -54,22 +56,22 @@ io.on('connection', socket => {
             if (killerCount > 0) {
                 io.to('killerGroup').emit('killerAction', playerList);
             } else {
-                // noKiller(round);
+                noPlayerAction('kill',round);
             }
             if (policeCount > 0) {
                 io.to('policeGroup').emit('policeAction', playerList);
             } else {
-                // noPolice(round);
+                noPlayerAction('check',round);
             }
             if (doctorCount > 0) {
                 io.to('doctor').emit('doctorAction', playerList);
             } else {
-                // noDoctor(round);
+                noPlayerAction('inject',round);
             }
             if (gunSmithCount > 0) {
                 io.to('gunSmith').emit('gunSmithAction', playerList);
             } else {
-                // noGunSmith(round);
+                noPlayerAction('gun',round);
             }
         }
     });
@@ -77,21 +79,33 @@ io.on('connection', socket => {
     socket.on('killPlayer', (playerId) => {
         playerAction(playerId, 'kill', round);
         io.to('killerGroup').emit('killComplete', ({playerId, alivePlayers}));
+        if (isRoundOver(round)) {
+            console.log('Round Over');
+        }
     });
 
     socket.on('checkPlayer', (playerId) => {
         playerAction(playerId, 'check', round);
         io.to('policeGroup').emit('checkComplete', ({playerId, alivePlayers}));
+        if (isRoundOver(round)) {
+            console.log('Round Over');
+        }
     });
 
     socket.on('injectPlayer', (playerId) => {
         playerAction(playerId, 'inject', round);
         io.to('doctor').emit('injectComplete', ({playerId, alivePlayers}));
+        if (isRoundOver(round)) {
+            console.log('Round Over');
+        }
     });
 
     socket.on('gunPlayer', (playerId) => {
         playerAction(playerId, 'gun', round);
         io.to('gunSmith').emit('gunComplete', ({playerId, alivePlayers}));
+        if (isRoundOver(round)) {
+            console.log('Round Over');
+        }
     });
 
     socket.on('voteReady', (votedPlayer) => {

@@ -53,7 +53,6 @@ function assignPlayer(id, username) {
   const player = {id, username, card1, card2, side, poison, playerId};
 
   players.push(player);
-  console.log(`player: ${player}`);
   return player;
 }
 
@@ -85,8 +84,44 @@ function getThisRoundAction(thisRound, action, playerId) {
   return thisRound;
 }
 
+function noPlayerAction(action, round) {
+  if (roundAction[round-1]==undefined) {
+    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1};
+    roundAction.push(getThisRoundNoAction(thisRound, action));
+  } else {
+    var thisRound = roundAction[round-1];
+    roundAction[round-1] = getThisRoundNoAction(thisRound, action);
+  }
+}
+
+function getThisRoundNoAction(thisRound, action) {
+  if (action==='kill') {
+    thisRound.killed = 0;
+  } else if (action==='check') {
+    thisRound.checked = 0;
+  } else if (action==='gun') {
+    thisRound.gunned = 0;
+  } else if (action==='inject') {
+    thisRound.injected = 0;
+  }
+  return thisRound;
+}
+
+function isRoundOver(round) {
+  const currentRound = roundAction[round-1];
+  if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 && currentRound.gunned!==-1) {
+    console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
+    gunned: ${currentRound.gunned}, injected: ${currentRound.injected}`);
+    return true;
+  } else {
+    return false;
+  }
+}
+
 module.exports = {
   playerJoin,
   playerReady,
-  playerAction
+  playerAction,
+  noPlayerAction,
+  isRoundOver
 };
