@@ -118,7 +118,7 @@ function outputIdentity(player) {
 function outputGunSmithSelection(alivePlayers) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = '<p class="text">Doctor Please Select a player<p>';
+    div.innerHTML = '<p class="text">Gun Smith Please Select a player<p>';
     // document.querySelector('.chat-messages').appendChild(div);
     alivePlayers.forEach(e =>{
         // console.log(e);

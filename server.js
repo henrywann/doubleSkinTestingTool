@@ -7,7 +7,8 @@ const {
     playerReady,
     playerAction,
     noPlayerAction,
-    isRoundOver
+    isRoundOver,
+    calculateRoundResult
 } = require('./utils/players');
 
 const app = express();
@@ -73,6 +74,9 @@ io.on('connection', socket => {
             } else {
                 noPlayerAction('gun',round);
             }
+            if (isRoundOver(round)) {
+                roundOverAction(round, io);
+            }
         }
     });
 
@@ -80,7 +84,7 @@ io.on('connection', socket => {
         playerAction(playerId, 'kill', round);
         io.to('killerGroup').emit('killComplete', ({playerId, alivePlayers}));
         if (isRoundOver(round)) {
-            console.log('Round Over');
+            roundOverAction(round, io);
         }
     });
 
@@ -88,7 +92,7 @@ io.on('connection', socket => {
         playerAction(playerId, 'check', round);
         io.to('policeGroup').emit('checkComplete', ({playerId, alivePlayers}));
         if (isRoundOver(round)) {
-            console.log('Round Over');
+            roundOverAction(round, io);
         }
     });
 
@@ -96,7 +100,7 @@ io.on('connection', socket => {
         playerAction(playerId, 'inject', round);
         io.to('doctor').emit('injectComplete', ({playerId, alivePlayers}));
         if (isRoundOver(round)) {
-            console.log('Round Over');
+            roundOverAction(round, io);
         }
     });
 
@@ -104,7 +108,7 @@ io.on('connection', socket => {
         playerAction(playerId, 'gun', round);
         io.to('gunSmith').emit('gunComplete', ({playerId, alivePlayers}));
         if (isRoundOver(round)) {
-            console.log('Round Over');
+            roundOverAction(round, io);
         }
     });
 
@@ -125,6 +129,13 @@ io.on('connection', socket => {
     });
 
 });
+
+function roundOverAction(round, io) {
+    console.log('Round Over');
+    var deadPlayers = calculateRoundResult(round);
+    const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
+    io.emit('message', deadPlayerMessage);
+}
 
 const PORT = process.env.PORT || 4000;
 

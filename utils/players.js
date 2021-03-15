@@ -1,3 +1,5 @@
+const e = require("express");
+
 var players = [];
 
 var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 
@@ -118,10 +120,54 @@ function isRoundOver(round) {
   }
 }
 
+function calculateRoundResult(round) {
+  const currentRound = roundAction[round-1];
+  var deadPlayers = [];
+  // killed and cured is not the same player, killed player is dead
+  if (currentRound.killed!==0 && currentRound.killed!==currentRound.injected) {
+    console.log('killed and cured is not the same player');
+    populateDeadPlayers(currentRound.killed, deadPlayers);
+  }
+  // gun smith fired, gunned player is dead
+  if (currentRound.gunned!==0) {
+    console.log('gun smith fired');
+    populateDeadPlayers(currentRound.gunned, deadPlayers);
+  }
+  // cured player is not killed, poison increased by 1
+  if (currentRound.injected!==0 && currentRound.injected!==currentRound.killed) {
+    console.log('cured player is not killed');
+    existingPlayers.forEach(e => {
+      if (e.playerId===currentRound.injected) {
+        e.poison++;
+        if (e.poison===2) {
+          populateDeadPlayers(currentRound.injected, deadPlayers);
+        }
+      }
+    });
+  }
+  // TODO: remove totally dead players
+  return deadPlayers;
+}
+
+function populateDeadPlayers(dead, deadPlayers) {
+  existingPlayers.forEach(e => {
+    if (e.playerId===dead) {
+      if (e.card1!=='') {
+        e.card1 = '';
+        e.poison = 0;
+      } else if (e.card2!=='') {
+        e.card2 = '';
+      }
+    }
+  });
+  deadPlayers.push(dead);
+}
+
 module.exports = {
   playerJoin,
   playerReady,
   playerAction,
   noPlayerAction,
-  isRoundOver
+  isRoundOver,
+  calculateRoundResult
 };
