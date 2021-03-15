@@ -150,13 +150,16 @@ function calculateRoundResult(round) {
       }
     });
   }
-  // const remainingPlayers = updateExistingPlayers(deadPlayers);
+  updateExistingPlayers();
   // TODO: remove totally dead players
   return deadPlayers;
 }
 
-function updateExistingPlayers(deadPlayers) {
-  return alivePlayers;
+function updateExistingPlayers() {
+  var filtered = alivePlayers.filter(function(value, index, arr){ 
+    return value.card2!=='';
+  });
+  alivePlayers = filtered;
 }
 
 function populateDeadPlayers(dead, deadPlayers) {
