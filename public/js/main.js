@@ -53,7 +53,11 @@ socket.on('gunComplete', ({playerId, alivePlayers}) => {
         var btn = document.getElementById(btnId);
         btn.disabled = true;
     }
-    alert(`Gunned Player ${playerId}!`);
+    var noGunBtn = document.getElementById('noGun');
+    noGunBtn.disabled = true;
+    if (playerId!=='0') {
+        alert(`Gunned Player ${playerId}!`);
+    }
 });
 
 socket.on('injectComplete', ({playerId, alivePlayers}) => {
@@ -124,6 +128,7 @@ function outputGunSmithSelection(alivePlayers) {
         // console.log(e);
         div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}">${e.playerId+1}</button>`);
     });
+    div.insertAdjacentHTML('beforeEnd', `<button id="noGun">No Gun </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 
     var gunSmithBtn1 = document.getElementById("gunSmith1");
@@ -154,6 +159,11 @@ function outputGunSmithSelection(alivePlayers) {
     var gunSmithBtn6 = document.getElementById("gunSmith6");
     gunSmithBtn6.addEventListener("click", function() {
         gunPlayer('6');
+    });
+
+    var gunSmithBtn7 = document.getElementById("noGun");
+    gunSmithBtn7.addEventListener("click", function() {
+        gunPlayer('0');
     });
 }
 
@@ -298,11 +308,6 @@ function killPlayer(playerId) {
 function gunPlayer(playerId) {
     socket.emit('gunPlayer', playerId);
 }
-
-// function killPlayer1() {
-//     console.log('killing player 1');
-//     socket.emit('killPlayer', '1');
-// }
 
 function clickSwitchOrder() {
     console.log("switching order");

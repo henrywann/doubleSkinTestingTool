@@ -8,7 +8,8 @@ const {
     playerAction,
     noPlayerAction,
     isRoundOver,
-    calculateRoundResult
+    calculateRoundResult,
+    getAlivePlayers
 } = require('./utils/players');
 
 const app = express();
@@ -19,7 +20,7 @@ const io = socketio(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 var round = 0;
-var alivePlayers =[];
+
 // Run with client connects
 io.on('connection', socket => {
     var playerList = [];
@@ -43,10 +44,8 @@ io.on('connection', socket => {
         if (currentPlayer.card1==='gunSmith') {
             socket.join('gunSmith');
         }
-        playerList = playerReady(socket.id, currentPlayer);
-        alivePlayers = playerList;
-        // console.log(playerList);
-        if (playerList.length==6) {
+        playerReady(socket.id, currentPlayer);
+        if (getAlivePlayers().length==6) {
             round++;
             console.log("starting game!");
             const killerCount = io.nsps['/'].adapter.rooms['killerGroup']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['killerGroup']).length;
@@ -55,22 +54,22 @@ io.on('connection', socket => {
             const gunSmithCount = io.nsps['/'].adapter.rooms['gunSmith']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['gunSmith']).length;
             io.emit('message', "Game Starting!");
             if (killerCount > 0) {
-                io.to('killerGroup').emit('killerAction', playerList);
+                io.to('killerGroup').emit('killerAction', getAlivePlayers());
             } else {
                 noPlayerAction('kill',round);
             }
             if (policeCount > 0) {
-                io.to('policeGroup').emit('policeAction', playerList);
+                io.to('policeGroup').emit('policeAction', getAlivePlayers());
             } else {
                 noPlayerAction('check',round);
             }
             if (doctorCount > 0) {
-                io.to('doctor').emit('doctorAction', playerList);
+                io.to('doctor').emit('doctorAction', getAlivePlayers());
             } else {
                 noPlayerAction('inject',round);
             }
             if (gunSmithCount > 0) {
-                io.to('gunSmith').emit('gunSmithAction', playerList);
+                io.to('gunSmith').emit('gunSmithAction', getAlivePlayers());
             } else {
                 noPlayerAction('gun',round);
             }
@@ -82,7 +81,11 @@ io.on('connection', socket => {
 
     socket.on('killPlayer', (playerId) => {
         playerAction(playerId, 'kill', round);
-        io.to('killerGroup').emit('killComplete', ({playerId, alivePlayers}));
+        // console.log(getAlivePlayers());
+        io.to('killerGroup').emit('killComplete', {
+            playerId: playerId, 
+            alivePlayers: getAlivePlayers()
+        });
         if (isRoundOver(round)) {
             roundOverAction(round, io);
         }
@@ -90,7 +93,10 @@ io.on('connection', socket => {
 
     socket.on('checkPlayer', (playerId) => {
         playerAction(playerId, 'check', round);
-        io.to('policeGroup').emit('checkComplete', ({playerId, alivePlayers}));
+        io.to('policeGroup').emit('checkComplete', {
+            playerId: playerId,
+            alivePlayers: getAlivePlayers()
+        });
         if (isRoundOver(round)) {
             roundOverAction(round, io);
         }
@@ -98,15 +104,25 @@ io.on('connection', socket => {
 
     socket.on('injectPlayer', (playerId) => {
         playerAction(playerId, 'inject', round);
-        io.to('doctor').emit('injectComplete', ({playerId, alivePlayers}));
+        io.to('doctor').emit('injectComplete', {
+            playerId: playerId,
+            alivePlayers: getAlivePlayers()
+        });
         if (isRoundOver(round)) {
             roundOverAction(round, io);
         }
     });
 
     socket.on('gunPlayer', (playerId) => {
-        playerAction(playerId, 'gun', round);
-        io.to('gunSmith').emit('gunComplete', ({playerId, alivePlayers}));
+        if (playerId==='0') {
+            noPlayerAction('gun',round);
+        } else {
+            playerAction(playerId, 'gun', round);
+        }
+        io.to('gunSmith').emit('gunComplete', {
+            playerId: playerId,
+            alivePlayers: getAlivePlayers()
+        });
         if (isRoundOver(round)) {
             roundOverAction(round, io);
         }
@@ -115,10 +131,6 @@ io.on('connection', socket => {
     socket.on('voteReady', (votedPlayer) => {
 
     });
-
-
-
-    // socket.broadcast.emit();
 
     // socket.on('disconnect', () => {
     //     io.emit('message', 'A user has left');
@@ -132,9 +144,16 @@ io.on('connection', socket => {
 
 function roundOverAction(round, io) {
     console.log('Round Over');
-    var deadPlayers = calculateRoundResult(round);
+    const deadPlayers = calculateRoundResult(round);
     const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
     io.emit('message', deadPlayerMessage);
+    // if (isBadGuysWon()) {
+    //     io.emit('message', 'Game Over! Bad Guys Won!');
+    // } else if (isGoodGuysWon()) {
+    //     io.emit('message', 'Game Over! Good Guys Won!');
+    // } else {
+    //     io.emit('votePlayer', alivePlayers);
+    // }
 }
 
 const PORT = process.env.PORT || 4000;

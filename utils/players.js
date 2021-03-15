@@ -1,5 +1,6 @@
 const e = require("express");
 
+// players[] keeps track of how many players joined the game. alivePlayers is how many players are ready
 var players = [];
 
 var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 
@@ -8,12 +9,14 @@ var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'sile
 // var cards = ['killer', 'villager', 'villager', 'police', 'villager', 'gunSmith', 'silencer', 
 // 'villager', 'killer', 'villager', 'police', 'villager'];
 
-var existingPlayers = [];
+var alivePlayers = [];
 var roundAction = [];
 
+function getAlivePlayers() {
+  return alivePlayers;
+}
 // Join player to game and show cards
 function playerJoin(id, username) {
-
   if (players.length < 6) {
     return assignPlayer(id, username);
   } else {
@@ -59,8 +62,7 @@ function assignPlayer(id, username) {
 }
 
 function playerReady(id, currentPlayer) {
-  existingPlayers.push(currentPlayer);
-  return existingPlayers;
+  alivePlayers.push(currentPlayer);
 }
 
 function playerAction(playerId, action, round) {
@@ -111,6 +113,9 @@ function getThisRoundNoAction(thisRound, action) {
 
 function isRoundOver(round) {
   const currentRound = roundAction[round-1];
+  if (currentRound===undefined) { // all gods are present
+    return false;
+  }
   if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 && currentRound.gunned!==-1) {
     console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
     gunned: ${currentRound.gunned}, injected: ${currentRound.injected}`);
@@ -136,7 +141,7 @@ function calculateRoundResult(round) {
   // cured player is not killed, poison increased by 1
   if (currentRound.injected!==0 && currentRound.injected!==currentRound.killed) {
     console.log('cured player is not killed');
-    existingPlayers.forEach(e => {
+    alivePlayers.forEach(e => {
       if (e.playerId===currentRound.injected) {
         e.poison++;
         if (e.poison===2) {
@@ -145,12 +150,17 @@ function calculateRoundResult(round) {
       }
     });
   }
+  // const remainingPlayers = updateExistingPlayers(deadPlayers);
   // TODO: remove totally dead players
   return deadPlayers;
 }
 
+function updateExistingPlayers(deadPlayers) {
+  return alivePlayers;
+}
+
 function populateDeadPlayers(dead, deadPlayers) {
-  existingPlayers.forEach(e => {
+  alivePlayers.forEach(e => {
     if (e.playerId===dead) {
       if (e.card1!=='') {
         e.card1 = '';
@@ -169,5 +179,6 @@ module.exports = {
   playerAction,
   noPlayerAction,
   isRoundOver,
-  calculateRoundResult
+  calculateRoundResult,
+  getAlivePlayers
 };
