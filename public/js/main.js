@@ -22,6 +22,13 @@ socket.on('switchOrder', player => {
     switchOrder(player);
 });
 
+// Displays player typed messages
+socket.on('playerChatmessage', ({message, playername, playerId}) => {
+    console.log(`Incoming message: ${message} ${playername} ${playerId}`);
+    outputPlayerChatMessage(message, playername, playerId);
+});
+
+// Displays game messages
 socket.on('message', message => {
     console.log(`Incoming message: ${message}`);
     outputMessage(message);
@@ -109,15 +116,17 @@ socket.on('votePlayer', votePlayers => {
 chatForm.addEventListener('submit', e => {
     e.preventDefault();
     const msg = e.target.elements.msg.value;
-    socket.emit('chatMessage', msg);
+    socket.emit('chatMessage', ({msg, username}));
 });
 
 function outputIdentity(player) {
     currentPlayer = player;
+    // console.log(player);
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML =`<p class="meta">Brad <span>9:12pm</span></p>
+    div.innerHTML =`<p class="meta">Admin <span>9:12pm</span></p>
     <p class="text">
+        Hello [Player ${player.playerId}] ${player.username}, here're your identities! \n
         card1: ${player.card1}
         card2: ${player.card2}
     </p>`;
@@ -346,10 +355,20 @@ function readyToPlay() {
     socket.emit('playerReady', currentPlayer);
 }
 
+function outputPlayerChatMessage(message, playername, playerId) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML =`<p class="meta">${playername} <span> Player ${playerId}</span></p>
+    <p class="text">
+        ${message}
+    </p>`;
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
 function outputMessage(message) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML =`<p class="meta">Brad <span>9:12pm</span></p>
+    div.innerHTML =`<p class="meta">God Message</p>
     <p class="text">
         ${message}
     </p>`;
