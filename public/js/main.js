@@ -22,9 +22,9 @@ socket.on('switchOrder', player => {
     switchOrder(player);
 });
 
-socket.on('message', message => {
-    console.log(`Incoming message: ${message}`);
-    outputMessage(message);
+socket.on('message', ({message, playername, playerId}) => {
+    console.log(`Incoming message: ${message} ${playername} ${playerId}`);
+    outputMessage(message, playername, playerId);
 });
 
 socket.on('killerAction', alivePlayers => {
@@ -104,15 +104,17 @@ socket.on('checkComplete', ({playerId, alivePlayers}) => {
 chatForm.addEventListener('submit', e => {
     e.preventDefault();
     const msg = e.target.elements.msg.value;
-    socket.emit('chatMessage', msg);
+    socket.emit('chatMessage', ({msg, username}));
 });
 
 function outputIdentity(player) {
     currentPlayer = player;
+    // console.log(player);
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML =`<p class="meta">Brad <span>9:12pm</span></p>
+    div.innerHTML =`<p class="meta">Admin <span>9:12pm</span></p>
     <p class="text">
+        Hello [Player ${player.playerId}] ${player.username}, here're your identities! \n
         card1: ${player.card1}
         card2: ${player.card2}
     </p>`;
@@ -324,10 +326,10 @@ function readyToPlay() {
     socket.emit('playerReady', currentPlayer);
 }
 
-function outputMessage(message) {
+function outputMessage(message, playername, playerId) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML =`<p class="meta">Brad <span>9:12pm</span></p>
+    div.innerHTML =`<p class="meta">${playername} <span> Player ${playerId}</span></p>
     <p class="text">
         ${message}
     </p>`;

@@ -20,6 +20,7 @@ const io = socketio(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 var round = 0;
+var allPlayers = [];
 
 // Run with client connects
 io.on('connection', socket => {
@@ -28,6 +29,7 @@ io.on('connection', socket => {
         const player = playerJoin(socket.id, username);
         socket.emit('showIdentity', player);
         // console.log(player);
+        allPlayers.push(player);
     });
 
     socket.on('playerReady', (currentPlayer) => {
@@ -136,8 +138,20 @@ io.on('connection', socket => {
     //     io.emit('message', 'A user has left');
     // });
 
-    socket.on('chatMessage', (msg) => {
-        io.emit('message', msg);
+    socket.on('chatMessage', ({msg, username}) => {
+        var playerId = 0;
+        allPlayers.forEach(element => {
+            if (element.username === username) {
+                playerId = element.playerId;
+            }
+        });
+        messageDetails={  
+            message : msg,  
+            playername : username,
+            playerId : playerId
+        };  
+        io.emit('message', messageDetails);
+        // console.log(allPlayers);
     });
 
 });
