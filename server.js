@@ -20,7 +20,7 @@ const io = socketio(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 var round = 0;
-
+var voteblePlayers = [];
 // Run with client connects
 io.on('connection', socket => {
     var playerList = [];
@@ -128,10 +128,6 @@ io.on('connection', socket => {
         }
     });
 
-    socket.on('voteReady', (votedPlayer) => {
-
-    });
-
     // socket.on('disconnect', () => {
     //     io.emit('message', 'A user has left');
     // });
@@ -147,13 +143,56 @@ function roundOverAction(round, io) {
     const deadPlayers = calculateRoundResult(round);
     const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
     io.emit('message', deadPlayerMessage);
-    // if (isBadGuysWon()) {
-    //     io.emit('message', 'Game Over! Bad Guys Won!');
-    // } else if (isGoodGuysWon()) {
-    //     io.emit('message', 'Game Over! Good Guys Won!');
-    // } else {
-    //     io.emit('votePlayer', alivePlayers);
-    // }
+    if (isBadGuysWon()) {
+        io.emit('message', 'Game Over! Bad Guys Won!');
+    } else if (isGoodGuysWon()) {
+        io.emit('message', 'Game Over! Good Guys Won!');
+    } else {
+        // voteblePlayers consists elements of String
+        voteblePlayers = getVotePlayers(deadPlayers);
+        console.log(`Players can be voted (in order): ${voteblePlayers}`);
+        io.emit('votePlayer', voteblePlayers);
+    }
+}
+
+function getVotePlayers(deadPlayers) {
+    var votePlayers=[];
+    for (var i=0; i < getAlivePlayers().length; i++) {
+        var exist = false;
+        for (var j=0; j<deadPlayers.length; j++) {
+            if ((parseInt(getAlivePlayers()[i].playerId)+1).toString() === deadPlayers[j]) {
+                exist = true;
+            }
+        }
+        if (!exist) {
+            votePlayers.push((i+1).toString());
+        }
+    }
+    var voteOrder = [];
+    var firstDead = deadPlayers[0];
+    if (firstDead===undefined) {
+        firstDead = Math.floor(Math.random() * (votePlayers.length));
+    }
+    for (var i=0; i<votePlayers.length; i++) {
+        if (parseInt(votePlayers[i]) > parseInt(firstDead)) {
+            var l1 = votePlayers.slice(i);
+            var l2 = votePlayers.slice(0, i);
+            voteOrder = l1.concat(l2);
+            break;
+        }
+    }
+    if (!voteOrder) {
+        voteOrder = votePlayers;
+    }
+    return voteOrder;
+}
+
+function isBadGuysWon() {
+    return false;
+}
+
+function isGoodGuysWon() {
+    return false;
 }
 
 const PORT = process.env.PORT || 4000;

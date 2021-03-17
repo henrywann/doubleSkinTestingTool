@@ -100,6 +100,11 @@ socket.on('checkComplete', ({playerId, alivePlayers}) => {
     });
 });
 
+socket.on('votePlayer', votePlayers => {
+    const playerTobeVoted = votePlayers[0];
+    outputVoteSelection(playerTobeVoted);
+});
+
 // Message submit
 chatForm.addEventListener('submit', e => {
     e.preventDefault();
@@ -119,13 +124,31 @@ function outputIdentity(player) {
     document.querySelector('.chat-messages').appendChild(div);
 }
 
+function outputVoteSelection(playerTobeVoted) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = `<p class="text">Do you want to vote player ${playerTobeVoted}<p>`;
+    div.insertAdjacentHTML('beforeEnd',`<button id="voteYes${playerTobeVoted}" onclick="voteYes(${playerTobeVoted}); 
+                                        this.disabled=true; voteNo${playerTobeVoted}.disabled=true"> YES </button>
+                                        <button id="voteNo${playerTobeVoted}" onclick="voteNo(${playerTobeVoted});
+                                        this.disabled=true; voteYes${playerTobeVoted}.disabled=true"> NO </button>`);
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
+function voteYes(player) {
+    alert(`Voted Yes for Player ${player}`);
+}
+
+function voteNo(player) {
+    alert(`Voted No for Player ${player}`);
+}
+
 function outputGunSmithSelection(alivePlayers) {
     const div = document.createElement('div');
     div.classList.add('message');
     div.innerHTML = '<p class="text">Gun Smith Please Select a player<p>';
     // document.querySelector('.chat-messages').appendChild(div);
     alivePlayers.forEach(e =>{
-        // console.log(e);
         div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}">${e.playerId+1}</button>`);
     });
     div.insertAdjacentHTML('beforeEnd', `<button id="noGun">No Gun </button>`);
@@ -173,7 +196,6 @@ function outputDoctorSelection(alivePlayers) {
     div.innerHTML = '<p class="text">Doctor Please Select a player<p>';
     // document.querySelector('.chat-messages').appendChild(div);
     alivePlayers.forEach(e =>{
-        // console.log(e);
         div.insertAdjacentHTML('beforeEnd', `<button id="doctor${e.playerId+1}">${e.playerId+1}</button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
