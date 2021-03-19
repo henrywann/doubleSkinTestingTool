@@ -22,6 +22,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 var round = 0;
 var voteblePlayers = [];
 var allPlayers = [];
+var playersThatVoted = 0;
+var whoVotedWho = [];
 // Run with client connects
 io.on('connection', socket => {
     var playerList = [];
@@ -150,7 +152,46 @@ io.on('connection', socket => {
         // console.log(allPlayers);
     });
 
+    socket.on('increaseVote', ({votedPlayer, currentPlayerId, voteIndex}) => {
+        // console.log(`increasing vote for player ${votedPlayer}`);
+        whoVotedWho.push(currentPlayerId);
+        getAlivePlayers().forEach(e => {
+            if (e.playerId+1===parseInt(votedPlayer)) {
+                e.numOfVotes++;
+            }
+            if (e.playerId+1===currentPlayerId) {
+                e.voting = parseInt(votedPlayer);
+            }
+        })
+        voteComplete(voteIndex);
+    });
+
+    socket.on('voteNo', (voteIndex) => {
+        console.log('Not voting');
+        voteComplete(voteIndex);
+    });
+
 });
+
+function voteComplete(voteIndex) {
+    playersThatVoted++;
+    if (playersThatVoted===voteblePlayers.length) {
+        playersThatVoted = 0;
+        if (parseInt(voteIndex)===voteblePlayers.length-1) {
+            // TODO: calculate vote result
+            console.log('voting of this round is over');
+            console.log(getAlivePlayers());
+        } else {
+            io.emit('message', `Players who voted yes ${whoVotedWho}`);
+            whoVotedWho.length=0;
+            io.emit('votePlayer', ({
+                voteThisPlayer: voteblePlayers[parseInt(voteIndex)+1], 
+                voteIndex: parseInt(voteIndex)+1, 
+                voteblePlayers: voteblePlayers
+            }));
+        }
+    }
+}
 
 function roundOverAction(round, io) {
     console.log('Round Over');
@@ -165,7 +206,7 @@ function roundOverAction(round, io) {
         // voteblePlayers consists elements of String
         voteblePlayers = getVotePlayers(deadPlayers);
         console.log(`Players can be voted (in order): ${voteblePlayers}`);
-        io.emit('votePlayer', voteblePlayers);
+        io.emit('votePlayer', ({voteThisPlayer: voteblePlayers[0], voteIndex: 0, voteblePlayers: voteblePlayers}));
     }
 }
 

@@ -107,9 +107,13 @@ socket.on('checkComplete', ({playerId, alivePlayers}) => {
     });
 });
 
-socket.on('votePlayer', votePlayers => {
-    const playerTobeVoted = votePlayers[0];
-    outputVoteSelection(playerTobeVoted);
+socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers}) => {
+    sessionStorage.setItem("voteIndex", voteIndex);
+    voteblePlayers.forEach(e => {
+        if (e===sessionStorage.getItem("playerId")) {
+            outputVoteSelection(voteThisPlayer);
+        }
+    })
 });
 
 // Message submit
@@ -131,6 +135,8 @@ function outputIdentity(player) {
         card2: ${player.card2}
     </p>`;
     document.querySelector('.chat-messages').appendChild(div);
+    sessionStorage.setItem("playerId", player.playerId+1);
+    sessionStorage.setItem("socketId", player.id);
 }
 
 function outputVoteSelection(playerTobeVoted) {
@@ -146,10 +152,21 @@ function outputVoteSelection(playerTobeVoted) {
 
 function voteYes(player) {
     alert(`Voted Yes for Player ${player}`);
+    const currentPlayerId = sessionStorage.getItem("playerId");
+    const voteIndex = sessionStorage.getItem("voteIndex");
+    socket.emit('increaseVote', (
+        {
+            votedPlayer: player,
+            currentPlayerId: currentPlayerId,
+            voteIndex: voteIndex
+        }
+    ));
 }
 
 function voteNo(player) {
     alert(`Voted No for Player ${player}`);
+    const voteIndex = sessionStorage.getItem("voteIndex");
+    socket.emit('voteNo', voteIndex);
 }
 
 function outputGunSmithSelection(alivePlayers) {

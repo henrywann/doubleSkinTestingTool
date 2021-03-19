@@ -54,8 +54,10 @@ function assignPlayer(id, username) {
   const side = getPlayerSide(card1, card2);
   const poison = 0;
   const playerId = players.length;
+  const numOfVotes = 0;
+  const voting = 0;
 
-  const player = {id, username, card1, card2, side, poison, playerId};
+  const player = {id, username, card1, card2, side, poison, playerId, numOfVotes, voting};
 
   players.push(player);
   return player;
