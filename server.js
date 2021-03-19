@@ -9,7 +9,9 @@ const {
     noPlayerAction,
     isRoundOver,
     calculateRoundResult,
-    getAlivePlayers
+    getAlivePlayers,
+    populateDeadPlayers,
+    updateExistingPlayers
 } = require('./utils/players');
 
 const app = express();
@@ -24,6 +26,8 @@ var voteblePlayers = [];
 var allPlayers = [];
 var playersThatVoted = 0;
 var whoVotedWho = [];
+var isFirstRoundVoting = true;
+
 // Run with client connects
 io.on('connection', socket => {
     var playerList = [];
@@ -85,7 +89,6 @@ io.on('connection', socket => {
 
     socket.on('killPlayer', (playerId) => {
         playerAction(playerId, 'kill', round);
-        // console.log(getAlivePlayers());
         io.to('killerGroup').emit('killComplete', {
             playerId: playerId, 
             alivePlayers: getAlivePlayers()
@@ -180,6 +183,32 @@ function voteComplete(voteIndex) {
         if (parseInt(voteIndex)===voteblePlayers.length-1) {
             // TODO: calculate vote result
             console.log('voting of this round is over');
+            var playersWithMostVotes = [];
+            var mostVoteCount = 0;
+            getAlivePlayers().forEach(e => {
+                if (e.numOfVotes===mostVoteCount) {
+                    playersWithMostVotes.push(e.playerId+1);
+                    e.numOfVotes = 0;
+                } else if (e.numOfVotes > mostVoteCount) {
+                    mostVoteCount = e.numOfVotes;
+                    playersWithMostVotes.length=0;
+                    playersWithMostVotes.push(e.playerId+1);
+                    e.numOfVotes = 0;
+                }
+            });
+            if (playersWithMostVotes.length>1 && isFirstRoundVoting) {
+                // Restart voting on the players with the same number of votes
+                io.emit('votePlayer', ({voteThisPlayer: playersWithMostVotes[0], voteIndex: 0, voteblePlayers: voteblePlayers}));
+                isFirstRoundVoting = false;
+            } else {
+                playersWithMostVotes.forEach(e => {
+                    var deadPlayers = [];
+                    populateDeadPlayers(e-1, deadPlayers);
+                    updateExistingPlayers();
+                    console.log(`Players remaining after voting: ${getAlivePlayers()}`);
+                    // TODO: proceeds to next night
+                });
+            }
             console.log(getAlivePlayers());
         } else {
             io.emit('message', `Players who voted yes ${whoVotedWho}`);

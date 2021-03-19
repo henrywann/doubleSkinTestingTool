@@ -1,4 +1,5 @@
 const chatForm = document.getElementById('chat-form');
+const chatMessages = document.querySelector('.chat-messages');
 const socket = io();
 var currentPlayer;
 var switchOrder = document.getElementById("switchOrder");
@@ -17,39 +18,40 @@ socket.on('showIdentity', player => {
     outputIdentity(player);
 });
 
-// Switch player card order
-socket.on('switchOrder', player => {
-    switchOrder(player);
-});
-
 // Displays player typed messages
 socket.on('playerChatmessage', ({message, playername, playerId}) => {
     console.log(`Incoming message: ${message} ${playername} ${playerId}`);
     outputPlayerChatMessage(message, playername, playerId);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 // Displays game messages
 socket.on('message', message => {
     console.log(`Incoming message: ${message}`);
     outputMessage(message);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('killerAction', alivePlayers => {
     console.log(alivePlayers);
     outputKillerSelection(alivePlayers);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('policeAction', alivePlayers => {
     console.log("police action");
     outputPoliceSelection(alivePlayers);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('doctorAction', alivePlayers => {
     outputDoctorSelection(alivePlayers);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('gunSmithAction', alivePlayers => {
     outputGunSmithSelection(alivePlayers);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('gunComplete', ({playerId, alivePlayers}) => {
@@ -112,6 +114,7 @@ socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers}) => {
     voteblePlayers.forEach(e => {
         if (e===sessionStorage.getItem("playerId")) {
             outputVoteSelection(voteThisPlayer);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     })
 });
@@ -119,8 +122,14 @@ socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers}) => {
 // Message submit
 chatForm.addEventListener('submit', e => {
     e.preventDefault();
-    const msg = e.target.elements.msg.value;
+    let msg = e.target.elements.msg.value;
+    msg = msg.trim();
+    if (!msg){
+        return false;
+    }
     socket.emit('chatMessage', ({msg, username}));
+    e.target.elements.msg.value = '';
+    e.target.elements.msg.focus();
 });
 
 function outputIdentity(player) {

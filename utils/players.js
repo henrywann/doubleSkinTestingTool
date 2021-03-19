@@ -154,7 +154,7 @@ function calculateRoundResult(round) {
   }
   updateExistingPlayers();
   // TODO: remove totally dead players
-  return deadPlayers;
+  return deadPlayers.sort();
 }
 
 function updateExistingPlayers() {
@@ -185,5 +185,7 @@ module.exports = {
   noPlayerAction,
   isRoundOver,
   calculateRoundResult,
-  getAlivePlayers
+  getAlivePlayers,
+  populateDeadPlayers,
+  updateExistingPlayers
 };
