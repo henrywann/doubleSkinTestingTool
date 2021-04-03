@@ -3,7 +3,7 @@ const e = require("express");
 // players[] keeps track of how many players joined the game. alivePlayers is how many players are ready
 var players = [];
 
-var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 
+var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
 'villager', 'villager', 'villager', 'villager', 'villager'];
 
 // var cards = ['killer', 'villager', 'villager', 'police', 'villager', 'gunSmith', 'silencer', 
@@ -22,7 +22,7 @@ function playerJoin(id, username) {
   } else {
     console.log('more than 6 players joined')
     players = [];
-    cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 
+    cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
     'villager', 'villager', 'villager', 'villager', 'villager'];
     return assignPlayer(id, username);
   }
@@ -30,7 +30,7 @@ function playerJoin(id, username) {
 
 function getPlayerSide(card1, card2) {
   let map = new Map();
-  map.set('killer', -3);
+  map.set('killer', -4);
   map.set('police', 3);
   map.set('silencer', -2);
   map.set('doctor', 1);
@@ -56,8 +56,9 @@ function assignPlayer(id, username) {
   const playerId = players.length;
   const numOfVotes = 0;
   const voting = 0;
+  const isPureVillager = (card1==='villager' && card2==='villager');
 
-  const player = {id, username, card1, card2, side, poison, playerId, numOfVotes, voting};
+  const player = {id, username, card1, card2, side, poison, playerId, numOfVotes, voting, isPureVillager};
 
   players.push(player);
   return player;
@@ -165,9 +166,11 @@ function updateExistingPlayers() {
 }
 
 function populateDeadPlayers(dead, deadPlayers) {
+  console.log(`Player dead: ${dead} ${typeof dead}`);
   alivePlayers.forEach(e => {
-    if (e.playerId===dead) {
+    if (e.playerId+1===parseInt(dead)) {
       if (e.card1!=='') {
+        console.log('card1 is not empty');
         e.card1 = '';
         e.poison = 0;
       } else if (e.card2!=='') {
@@ -176,6 +179,12 @@ function populateDeadPlayers(dead, deadPlayers) {
     }
   });
   deadPlayers.push(dead);
+}
+
+function printAlivePlayers() {
+  alivePlayers.forEach(e => {
+    console.log(`card1: ${e.card1}, card2: ${e.card2}, playerId: ${e.playerId}`);
+  });
 }
 
 module.exports = {
@@ -187,5 +196,6 @@ module.exports = {
   calculateRoundResult,
   getAlivePlayers,
   populateDeadPlayers,
-  updateExistingPlayers
+  updateExistingPlayers,
+  printAlivePlayers
 };

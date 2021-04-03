@@ -39,51 +39,9 @@ io.on('connection', socket => {
     });
 
     socket.on('playerReady', (currentPlayer) => {
-        // console.log(currentPlayer);
-        if (currentPlayer.card1==='killer') {
-            socket.join('killerGroup');
-        }
-        if (currentPlayer.card1==='police') {
-            socket.join('policeGroup');
-        }
-        if (currentPlayer.card1==='doctor') {
-            socket.join('doctor');
-        }
-        if (currentPlayer.card1==='gunSmith') {
-            socket.join('gunSmith');
-        }
         playerReady(socket.id, currentPlayer);
         if (getAlivePlayers().length==6) {
-            round++;
-            console.log("starting game!");
-            const killerCount = io.nsps['/'].adapter.rooms['killerGroup']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['killerGroup']).length;
-            const policeCount = io.nsps['/'].adapter.rooms['policeGroup']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['policeGroup']).length;
-            const doctorCount = io.nsps['/'].adapter.rooms['doctor']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['doctor']).length;
-            const gunSmithCount = io.nsps['/'].adapter.rooms['gunSmith']===undefined?0:Object.keys(io.nsps['/'].adapter.rooms['gunSmith']).length;
-            io.emit('message', "Game Starting!");
-            if (killerCount > 0) {
-                io.to('killerGroup').emit('killerAction', getAlivePlayers());
-            } else {
-                noPlayerAction('kill',round);
-            }
-            if (policeCount > 0) {
-                io.to('policeGroup').emit('policeAction', getAlivePlayers());
-            } else {
-                noPlayerAction('check',round);
-            }
-            if (doctorCount > 0) {
-                io.to('doctor').emit('doctorAction', getAlivePlayers());
-            } else {
-                noPlayerAction('inject',round);
-            }
-            if (gunSmithCount > 0) {
-                io.to('gunSmith').emit('gunSmithAction', getAlivePlayers());
-            } else {
-                noPlayerAction('gun',round);
-            }
-            if (isRoundOver(round)) {
-                roundOverAction(round, io);
-            }
+            proceedToNextNight();
         }
     });
 
@@ -156,21 +114,20 @@ io.on('connection', socket => {
     });
 
     socket.on('increaseVote', ({votedPlayer, currentPlayerId, voteIndex}) => {
-        // console.log(`increasing vote for player ${votedPlayer}`);
         whoVotedWho.push(currentPlayerId);
-        getAlivePlayers().forEach(e => {
-            if (e.playerId+1===parseInt(votedPlayer)) {
+        voteblePlayers.forEach(e => {
+            if (e.playerId===votedPlayer.toString()) {
+                console.log(`increasing vote for player ${e.playerId}`);
                 e.numOfVotes++;
             }
-            if (e.playerId+1===currentPlayerId) {
-                e.voting = parseInt(votedPlayer);
+            if (e.playerId===currentPlayerId) {
+                e.alreadyVoted = "Y";
             }
         })
         voteComplete(voteIndex);
     });
 
     socket.on('voteNo', (voteIndex) => {
-        console.log('Not voting');
         voteComplete(voteIndex);
     });
 
@@ -181,35 +138,44 @@ function voteComplete(voteIndex) {
     if (playersThatVoted===voteblePlayers.length) {
         playersThatVoted = 0;
         if (parseInt(voteIndex)===voteblePlayers.length-1) {
-            // TODO: calculate vote result
+            // calculate vote result
             console.log('voting of this round is over');
             var playersWithMostVotes = [];
             var mostVoteCount = 0;
-            getAlivePlayers().forEach(e => {
+            voteblePlayers.forEach(e => {
                 if (e.numOfVotes===mostVoteCount) {
-                    playersWithMostVotes.push(e.playerId+1);
-                    e.numOfVotes = 0;
+                    playersWithMostVotes.push(e.playerId);
                 } else if (e.numOfVotes > mostVoteCount) {
                     mostVoteCount = e.numOfVotes;
                     playersWithMostVotes.length=0;
-                    playersWithMostVotes.push(e.playerId+1);
-                    e.numOfVotes = 0;
+                    playersWithMostVotes.push(e.playerId);
                 }
             });
+            console.log(`playersWithMostVotes: ${playersWithMostVotes}`);
             if (playersWithMostVotes.length>1 && isFirstRoundVoting) {
                 // Restart voting on the players with the same number of votes
+                // TODO: need to separate playersWhoCanVote, and voteblePlayers
+                voteblePlayers.forEach(e => {
+                    e.alreadyVoted = "N";
+                    e.numOfVotes = 0;
+                });
                 io.emit('votePlayer', ({voteThisPlayer: playersWithMostVotes[0], voteIndex: 0, voteblePlayers: voteblePlayers}));
                 isFirstRoundVoting = false;
             } else {
                 playersWithMostVotes.forEach(e => {
                     var deadPlayers = [];
-                    populateDeadPlayers(e-1, deadPlayers);
+                    populateDeadPlayers(e, deadPlayers);
                     updateExistingPlayers();
-                    console.log(`Players remaining after voting: ${getAlivePlayers()}`);
-                    // TODO: proceeds to next night
                 });
+                io.emit('message', `Player(s) voted out this round: ${playersWithMostVotes}`);
+                if (isBadGuysWon()) {
+                    io.emit('message', 'Game Over! Bad Guys Won!');
+                } else if (isGoodGuysWon()) {
+                    io.emit('message', 'Game Over! Good Guys Won!');
+                } else {
+                    proceedToNextNight();
+                }
             }
-            console.log(getAlivePlayers());
         } else {
             io.emit('message', `Players who voted yes ${whoVotedWho}`);
             whoVotedWho.length=0;
@@ -222,19 +188,107 @@ function voteComplete(voteIndex) {
     }
 }
 
+function proceedToNextNight() {
+    console.log('proceeding to next round');
+    var i;
+    for (i=0; i<getAlivePlayers().length; i++) {
+        const currentPlayer = getAlivePlayers()[i];
+        const socket = io.sockets.connected[currentPlayer.id];
+        if (socket===undefined) {
+            console.log(currentPlayer);
+        }
+        if (currentPlayer.card1==='killer') {
+            socket.join('killerGroup');
+        } else if (currentPlayer.card1==='' && currentPlayer.card2==='killer') {
+            socket.leave('policeGroup');
+            socket.leave('doctor');
+            socket.leave('gunSmith');
+            socket.join('killerGroup');
+        }
+        if (currentPlayer.card1==='police') {
+            socket.join('policeGroup');
+        } else if (currentPlayer.card1==='' && currentPlayer.card2==='police') {
+            socket.leave('killerGroup');
+            socket.leave('doctor');
+            socket.leave('gunSmith');
+            socket.join('policeGroup');
+        }
+        if (currentPlayer.card1==='doctor') {
+            socket.join('doctor');
+        } else if (currentPlayer.card1==='' && currentPlayer.card2==='doctor') {
+            socket.leave('policeGroup');
+            socket.leave('killerGroup');
+            socket.leave('gunSmith');
+            socket.join('doctor');
+        }
+        if (currentPlayer.card1==='gunSmith') {
+            socket.join('gunSmith');
+        } else if (currentPlayer.card1==='' && currentPlayer.card2==='gunSmith') {
+            socket.leave('policeGroup');
+            socket.leave('doctor');
+            socket.leave('killerGroup');
+            socket.join('gunSmith');
+        }
+        if (currentPlayer.card1==='' && currentPlayer.card2==='villager') {
+            socket.leave('policeGroup');
+            socket.leave('doctor');
+            socket.leave('killerGroup');
+            socket.leave('gunSmith');
+        } 
+    }
+
+    // Increasing round count and reseting all voting related global variables
+    round++;
+    playersThatVoted = 0;
+    voteblePlayers = [];
+    whoVotedWho = [];
+    isFirstRoundVoting = true;
+
+    const killerCount = io.nsps['/'].adapter.rooms['killerGroup']===undefined?0:io.nsps['/'].adapter.rooms['killerGroup'].length;
+    const policeCount = io.nsps['/'].adapter.rooms['policeGroup']===undefined?0:io.nsps['/'].adapter.rooms['policeGroup'].length;
+    const doctorCount = io.nsps['/'].adapter.rooms['doctor']===undefined?0:io.nsps['/'].adapter.rooms['doctor'].length;
+    const gunSmithCount = io.nsps['/'].adapter.rooms['gunSmith']===undefined?0:io.nsps['/'].adapter.rooms['gunSmith'].length;
+    console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
+    io.emit('message', `Night ${round} Starting!`);
+    if (killerCount > 0) {
+        io.to('killerGroup').emit('killerAction', getAlivePlayers());
+    } else {
+        noPlayerAction('kill',round);
+    }
+    if (policeCount > 0) {
+        io.to('policeGroup').emit('policeAction', getAlivePlayers());
+    } else {
+        noPlayerAction('check',round);
+    }
+    if (doctorCount > 0) {
+        io.to('doctor').emit('doctorAction', getAlivePlayers());
+    } else {
+        noPlayerAction('inject',round);
+    }
+    if (gunSmithCount > 0) {
+        io.to('gunSmith').emit('gunSmithAction', getAlivePlayers());
+    } else {
+        noPlayerAction('gun',round);
+    }
+    if (isRoundOver(round)) {
+        roundOverAction(round, io);
+    }
+}
+
 function roundOverAction(round, io) {
     console.log('Round Over');
     const deadPlayers = calculateRoundResult(round);
     const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
     io.emit('message', deadPlayerMessage);
+    // printAlivePlayers();
     if (isBadGuysWon()) {
         io.emit('message', 'Game Over! Bad Guys Won!');
     } else if (isGoodGuysWon()) {
         io.emit('message', 'Game Over! Good Guys Won!');
     } else {
-        // voteblePlayers consists elements of String
+        // voteblePlayers consists elements of playerId and alreadyVoted flag
         voteblePlayers = getVotePlayers(deadPlayers);
-        console.log(`Players can be voted (in order): ${voteblePlayers}`);
+        console.log(`Players can be voted (in order): ${voteblePlayers.toString()}`);
         io.emit('votePlayer', ({voteThisPlayer: voteblePlayers[0], voteIndex: 0, voteblePlayers: voteblePlayers}));
     }
 }
@@ -268,15 +322,35 @@ function getVotePlayers(deadPlayers) {
     if (!voteOrder) {
         voteOrder = votePlayers;
     }
-    return voteOrder;
+    var result = [];
+    voteOrder.forEach(e => {
+        result.push({playerId: e, numOfVotes: 0, alreadyVoted: "N"});
+    });
+    return result;
 }
 
 function isBadGuysWon() {
-    return false;
+    var pureVillagerExists = false;
+    var godExists = false;
+    getAlivePlayers().forEach(e => {
+        if (e.isPureVillager) {
+            pureVillagerExists = true;
+        }
+        if (e.side > 0) {
+            godExists = true;
+        }
+    });
+    return !pureVillagerExists || !godExists;
 }
 
 function isGoodGuysWon() {
-    return false;
+    var result = true;
+    getAlivePlayers().forEach(e => {
+        if (e.side < 0) {
+            result = false;
+        }
+    });
+    return result;
 }
 
 const PORT = process.env.PORT || 4000;
