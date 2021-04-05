@@ -163,7 +163,12 @@ function voteComplete(voteIndex) {
                     e.alreadyVoted = "N";
                     e.numOfVotes = 0;
                 });
-                io.emit('votePlayer', ({voteThisPlayer: playersWithMostVotes[0], voteIndex: 0, voteblePlayers: voteblePlayers}));
+                io.emit('votePlayer', ({
+                    voteThisPlayer: playersWithMostVotes[0], 
+                    voteIndex: 0, 
+                    voteblePlayers: voteblePlayers,
+                    round: round
+                }));
                 isFirstRoundVoting = false;
             } else {
                 playersWithMostVotes.forEach(e => {
@@ -186,7 +191,8 @@ function voteComplete(voteIndex) {
             io.emit('votePlayer', ({
                 voteThisPlayer: voteblePlayers[parseInt(voteIndex)+1], 
                 voteIndex: parseInt(voteIndex)+1, 
-                voteblePlayers: voteblePlayers
+                voteblePlayers: voteblePlayers,
+                round: round
             }));
         }
     }
@@ -295,7 +301,12 @@ function roundOverAction(round, io) {
         // voteblePlayers.forEach(e => {
         //     console.log(e.playerId);
         // });
-        io.emit('votePlayer', ({voteThisPlayer: voteblePlayers[0], voteIndex: 0, voteblePlayers: voteblePlayers}));
+        io.emit('votePlayer', ({
+            voteThisPlayer: voteblePlayers[0], 
+            voteIndex: 0, 
+            voteblePlayers: voteblePlayers, 
+            round: round
+        }));
     }
 }
 
