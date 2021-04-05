@@ -32,32 +32,32 @@ socket.on('message', message => {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-socket.on('killerAction', alivePlayers => {
+socket.on('killerAction', ({alivePlayers, round}) => {
     console.log(alivePlayers);
-    outputKillerSelection(alivePlayers);
+    outputKillerSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-socket.on('policeAction', alivePlayers => {
+socket.on('policeAction', ({alivePlayers, round}) => {
     console.log("police action");
-    outputPoliceSelection(alivePlayers);
+    outputPoliceSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-socket.on('doctorAction', alivePlayers => {
-    outputDoctorSelection(alivePlayers);
+socket.on('doctorAction', ({alivePlayers, round}) => {
+    outputDoctorSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-socket.on('gunSmithAction', alivePlayers => {
-    outputGunSmithSelection(alivePlayers);
+socket.on('gunSmithAction', ({alivePlayers, round}) => {
+    outputGunSmithSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
-socket.on('gunComplete', ({playerId, alivePlayers}) => {
+socket.on('gunComplete', ({playerId, alivePlayers, round}) => {
     console.log('received gunComplete');
     alivePlayers.forEach(e => {
-        document.getElementById(`gunSmith${e.playerId+1}`).disabled = true;
+        document.getElementById(`gunSmith${e.playerId+1}-${round}`).disabled = true;
     });
     var noGunBtn = document.getElementById('noGun');
     noGunBtn.disabled = true;
@@ -66,27 +66,27 @@ socket.on('gunComplete', ({playerId, alivePlayers}) => {
     }
 });
 
-socket.on('injectComplete', ({playerId, alivePlayers}) => {
+socket.on('injectComplete', ({playerId, alivePlayers, round}) => {
     console.log('received injectComplete');
     alivePlayers.forEach(e => {
-        document.getElementById(`doctor${e.playerId+1}`).disabled = true;
+        document.getElementById(`doctor${e.playerId+1}-${round}`).disabled = true;
     });
     alert(`Injected Player ${playerId}!`);
 });
 
 
-socket.on('killComplete', ({playerId, alivePlayers}) => {
+socket.on('killComplete', ({playerId, alivePlayers, round}) => {
     console.log('received killComplete');
     alivePlayers.forEach(e => {
-        document.getElementById(`kill${e.playerId+1}`).disabled = true;
+        document.getElementById(`kill${e.playerId+1}-${round}`).disabled = true;
     });
     alert(`Killed Player ${playerId}!`);
 });
 
-socket.on('checkComplete', ({playerId, alivePlayers}) => {
+socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
     console.log('received checkComplete');
     alivePlayers.forEach(e => {
-        document.getElementById(`police${e.playerId+1}`).disabled = true;
+        document.getElementById(`police${e.playerId+1}-${round}`).disabled = true;
     });
     alivePlayers.forEach(e => {
         if (e.playerId === playerId-1) {
@@ -169,10 +169,10 @@ function voteNo(player) {
     socket.emit('voteNo', voteIndex);
 }
 
-function outputGunSmithSelection(alivePlayers) {
+function outputGunSmithSelection(alivePlayers, round) {
     var i;
     for (i=0; i<alivePlayers.length; i++) {
-        var btn = document.getElementById(`gunSmith${i+1}`);
+        var btn = document.getElementById(`gunSmith${i+1}-${round}`);
         if (btn!=null) {
             btn.disabled = false;
         }
@@ -181,16 +181,16 @@ function outputGunSmithSelection(alivePlayers) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Gun Smith Please Select a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}" onclick="gunPlayer(${e.playerId+1})">${e.playerId+1}</button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
     div.insertAdjacentHTML('beforeEnd', `<button id="noGun" onclick="gunPlayer(0)">No Gun </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
-function outputDoctorSelection(alivePlayers) {
+function outputDoctorSelection(alivePlayers, round) {
     var i;
     for (i=0; i<alivePlayers.length; i++) {
-        var btn = document.getElementById(`doctor${i+1}`);
+        var btn = document.getElementById(`doctor${i+1}-${round}`);
         if (btn!=null) {
             btn.disabled = false;
         }
@@ -199,15 +199,15 @@ function outputDoctorSelection(alivePlayers) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Doctor Please Select a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="doctor${e.playerId+1}" onclick="injectPlayer(${e.playerId+1})">${e.playerId+1}</button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button id="doctor${e.playerId+1}-${round}" onclick="injectPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
 }
 
-function outputPoliceSelection(alivePlayers) {
-    var i;
+function outputPoliceSelection(alivePlayers, round) {
+    var i
     for (i=0; i<alivePlayers.length; i++) {
-        var btn = document.getElementById(`police${i+1}`);
+        var btn = document.getElementById(`police${i+1}-${round}`);
         if (btn!=null) {
             btn.disabled = false;
         }
@@ -216,15 +216,15 @@ function outputPoliceSelection(alivePlayers) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Police Please Select a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="police${e.playerId+1}" onclick="checkPlayer(${e.playerId+1})">${e.playerId+1}</button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button id="police${e.playerId+1}-${round}" onclick="checkPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
 }
 
-function outputKillerSelection(alivePlayers) {
+function outputKillerSelection(alivePlayers, round) {
     var i;
     for (i=0; i<alivePlayers.length; i++) {
-        var btn = document.getElementById(`kill${i+1}`);
+        var btn = document.getElementById(`kill${i+1}-${round}`);
         if (btn!=null) {
             btn.disabled = false;
         }
@@ -233,7 +233,7 @@ function outputKillerSelection(alivePlayers) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Killer Please kill a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="kill${e.playerId+1}" onclick="killPlayer(${e.playerId+1})">${e.playerId+1}</button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button id="kill${e.playerId+1}-${round}" onclick="killPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
 }

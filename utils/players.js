@@ -128,7 +128,7 @@ function isRoundOver(round) {
   }
 }
 
-function calculateRoundResult(round) {
+function calculateRoundResult(round, io) {
   const currentRound = roundAction[round-1];
   var deadPlayers = [];
   // killed and cured is not the same player, killed player is dead
@@ -153,12 +153,21 @@ function calculateRoundResult(round) {
       }
     });
   }
-  updateExistingPlayers();
+  updateExistingPlayers(io);
   // TODO: remove totally dead players
   return deadPlayers.sort();
 }
 
-function updateExistingPlayers() {
+function updateExistingPlayers(io) {
+  alivePlayers.forEach(e => {
+    if (e.card1==='' && e.card2==='') {
+      const socket = io.sockets.connected[e.id];
+      socket.leave('policeGroup');
+      socket.leave('doctor');
+      socket.leave('killerGroup');
+      socket.leave('gunSmith');
+    }
+  });
   var filtered = alivePlayers.filter(function(value, index, arr){ 
     return value.card2!=='';
   });
