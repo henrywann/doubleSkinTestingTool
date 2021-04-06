@@ -27,6 +27,8 @@ var allPlayers = [];
 var playersThatVoted = 0;
 var whoVotedWho = [];
 var isFirstRoundVoting = true;
+var playersWithMostVotes = [];
+var isPureVillagerExists = false;
 
 // Run with client connects
 io.on('connection', socket => {
@@ -41,6 +43,11 @@ io.on('connection', socket => {
     socket.on('playerReady', (currentPlayer) => {
         playerReady(socket.id, currentPlayer);
         if (getAlivePlayers().length==6) {
+            getAlivePlayers().forEach(e => {
+              if (e.isPureVillager) {
+                isPureVillagerExists = true;
+              }
+            });
             proceedToNextNight();
         }
     });
@@ -98,10 +105,6 @@ io.on('connection', socket => {
         }
     });
 
-    // socket.on('disconnect', () => {
-    //     io.emit('message', 'A user has left');
-    // });
-
     socket.on('chatMessage', ({msg, username}) => {
         var playerId = 0;
         allPlayers.forEach(element => {
@@ -141,42 +144,47 @@ function voteComplete(voteIndex) {
     playersThatVoted++;
     if (playersThatVoted===voteblePlayers.length) {
         playersThatVoted = 0;
-        if (parseInt(voteIndex)===voteblePlayers.length-1) {
+        if (parseInt(voteIndex)===(playersWithMostVotes.length>1?playersWithMostVotes.length-1:voteblePlayers.length-1)) {
             // calculate vote result
             console.log('voting of this round is over');
-            var playersWithMostVotes = [];
+            playersWithMostVotes = [];
             var mostVoteCount = 0;
             voteblePlayers.forEach(e => {
                 if (e.numOfVotes===mostVoteCount) {
-                    playersWithMostVotes.push(e.playerId);
+                    playersWithMostVotes.push(e);
                 } else if (e.numOfVotes > mostVoteCount) {
                     mostVoteCount = e.numOfVotes;
                     playersWithMostVotes.length=0;
-                    playersWithMostVotes.push(e.playerId);
+                    playersWithMostVotes.push(e);
                 }
             });
-            console.log(`playersWithMostVotes: ${playersWithMostVotes}`);
+            // console.log(`playersWithMostVotes: ${playersWithMostVotes}`);
             if (playersWithMostVotes.length>1 && isFirstRoundVoting) {
                 // Restart voting on the players with the same number of votes
-                // TODO: need to separate playersWhoCanVote, and voteblePlayers
                 voteblePlayers.forEach(e => {
                     e.alreadyVoted = "N";
                     e.numOfVotes = 0;
                 });
+                isFirstRoundVoting = false;
                 io.emit('votePlayer', ({
                     voteThisPlayer: playersWithMostVotes[0], 
                     voteIndex: 0, 
                     voteblePlayers: voteblePlayers,
-                    round: round
+                    round: round,
+                    isFirstRoundVoting: isFirstRoundVoting
                 }));
-                isFirstRoundVoting = false;
             } else {
                 playersWithMostVotes.forEach(e => {
                     var deadPlayers = [];
-                    populateDeadPlayers(e, deadPlayers);
+                    populateDeadPlayers(e.playerId, deadPlayers);
                     updateExistingPlayers(io);
                 });
-                io.emit('message', `Player(s) voted out this round: ${playersWithMostVotes}`);
+                var votedOutPlayers = [];
+                console.log(`voted out player length: ${playersWithMostVotes.length}`);
+                playersWithMostVotes.forEach(e => {
+                    votedOutPlayers.push(e.playerId);
+                });
+                io.emit('message', `Player(s) voted out this round: ${votedOutPlayers}`);
                 if (isBadGuysWon()) {
                     io.emit('message', 'Game Over! Bad Guys Won!');
                 } else if (isGoodGuysWon()) {
@@ -189,10 +197,11 @@ function voteComplete(voteIndex) {
             io.emit('message', `Players who voted yes ${whoVotedWho}`);
             whoVotedWho.length=0;
             io.emit('votePlayer', ({
-                voteThisPlayer: voteblePlayers[parseInt(voteIndex)+1], 
-                voteIndex: parseInt(voteIndex)+1, 
+                voteThisPlayer: playersWithMostVotes.length>1?playersWithMostVotes[parseInt(voteIndex)+1]:voteblePlayers[parseInt(voteIndex)+1], 
+                voteIndex: parseInt(voteIndex)+1,
                 voteblePlayers: voteblePlayers,
-                round: round
+                round: round,
+                isFirstRoundVoting: isFirstRoundVoting
             }));
         }
     }
@@ -203,9 +212,10 @@ function proceedToNextNight() {
     var i;
     for (i=0; i<getAlivePlayers().length; i++) {
         const currentPlayer = getAlivePlayers()[i];
-        const socket = io.sockets.connected[currentPlayer.id];
+        var socket = io.sockets.connected[currentPlayer.id];
         if (socket===undefined) {
             console.log(currentPlayer);
+            socket = io.sockets.connected[currentPlayer.id];
         }
         if (currentPlayer.card1==='killer') {
             socket.join('killerGroup');
@@ -252,6 +262,7 @@ function proceedToNextNight() {
     playersThatVoted = 0;
     voteblePlayers = [];
     whoVotedWho = [];
+    playersWithMostVotes = [];
     isFirstRoundVoting = true;
 
     const killerCount = io.nsps['/'].adapter.rooms['killerGroup']===undefined?0:io.nsps['/'].adapter.rooms['killerGroup'].length;
@@ -305,7 +316,8 @@ function roundOverAction(round, io) {
             voteThisPlayer: voteblePlayers[0], 
             voteIndex: 0, 
             voteblePlayers: voteblePlayers, 
-            round: round
+            round: round,
+            isFirstRoundVoting: isFirstRoundVoting
         }));
     }
 }
@@ -358,7 +370,7 @@ function isBadGuysWon() {
             godExists = true;
         }
     });
-    return !pureVillagerExists || !godExists;
+    return (!pureVillagerExists && isPureVillagerExists) || !godExists;
 }
 
 function isGoodGuysWon() {
