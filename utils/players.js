@@ -6,8 +6,8 @@ var players = [];
 var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
 'villager', 'villager', 'villager', 'villager', 'villager'];
 
-// var cards = ['killer', 'villager', 'villager', 'police', 'villager', 'gunSmith', 'silencer', 
-// 'villager', 'killer', 'villager', 'police', 'villager'];
+// var cards = ['killer', 'villager', 'villager', 'police', 'villager', 'gunSmith', 'villager', 
+// 'doctor', 'killer', 'villager', 'police', 'villager'];
 
 var alivePlayers = [];
 var roundAction = [];

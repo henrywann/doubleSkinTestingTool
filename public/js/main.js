@@ -97,14 +97,14 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
     });
 });
 
-socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers, round}) => {
+socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers, round, isFirstRoundVoting}) => {
     sessionStorage.setItem("voteIndex", voteIndex);
     voteblePlayers.forEach(e => {
         if (e.playerId===sessionStorage.getItem("playerId")) {
             if (e.alreadyVoted==="Y") {
                 voteNo(voteThisPlayer.playerId, round);
             } else {
-                outputVoteSelection(voteThisPlayer, round);
+                outputVoteSelection(voteThisPlayer, round, isFirstRoundVoting);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
         }
@@ -130,7 +130,7 @@ function outputIdentity(player) {
     div.classList.add('message');
     div.innerHTML =`<p class="meta">Admin <span>9:12pm</span></p>
     <p class="text">
-        Hello [Player ${player.playerId}] ${player.username}, here're your identities! \n
+        Hello [Player ${player.playerId+1}] ${player.username}, here're your identities! \n
         card1: ${player.card1}
         card2: ${player.card2}
     </p>`;
@@ -139,19 +139,21 @@ function outputIdentity(player) {
     sessionStorage.setItem("socketId", player.id);
 }
 
-function outputVoteSelection(playerTobeVoted, round) {
+function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {
     const div = document.createElement('div');
     div.classList.add('message');
     div.innerHTML = `<p class="text">Do you want to vote player ${playerTobeVoted.playerId}<p>`;
-    div.insertAdjacentHTML('beforeEnd',`<button id="voteYes${playerTobeVoted.playerId}-${round}" onclick="voteYes(${playerTobeVoted.playerId},${round})"> YES </button>
-                                        <button id="voteNo${playerTobeVoted.playerId}-${round}" onclick="voteNo(${playerTobeVoted.playerId},${round})"> NO </button>`);
+    div.insertAdjacentHTML('beforeEnd',`<button id="voteYes${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" 
+                                        onclick="voteYes(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> YES </button>
+                                        <button id="voteNo${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" 
+                                        onclick="voteNo(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> NO </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
-function voteYes(player, round) {
+function voteYes(player, round, isFirstRoundVoting) {
     alert(`Voted Yes for Player ${player}`);
-    document.getElementById(`voteYes${player}-${round}`).disabled = true;
-    document.getElementById(`voteNo${player}-${round}`).disabled = true;
+    document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`).disabled = true;
+    document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     const currentPlayerId = sessionStorage.getItem("playerId");
     const voteIndex = sessionStorage.getItem("voteIndex");
     socket.emit('increaseVote', (
@@ -163,13 +165,13 @@ function voteYes(player, round) {
     ));
 }
 
-function voteNo(player, round) {
+function voteNo(player, round, isFirstRoundVoting) {
     // alert(`Voted No for Player ${player}`);
-    if (document.getElementById(`voteYes${player}-${round}`) != null) {
-        document.getElementById(`voteYes${player}-${round}`).disabled = true;
+    if (document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`) != null) {
+        document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     }
-    if (document.getElementById(`voteNo${player}-${round}`) != null) {
-        document.getElementById(`voteNo${player}-${round}`).disabled = true;
+    if (document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`) != null) {
+        document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     }
     const voteIndex = sessionStorage.getItem("voteIndex");
     socket.emit('voteNo', voteIndex);
