@@ -38,6 +38,8 @@ io.on('connection', socket => {
         socket.emit('showIdentity', player);
         // console.log(player);
         allPlayers.push(player);
+
+        io.emit('roomUsers', allPlayers);
     });
 
     socket.on('playerReady', (currentPlayer) => {
@@ -212,7 +214,7 @@ function proceedToNextNight() {
     var i;
     for (i=0; i<getAlivePlayers().length; i++) {
         const currentPlayer = getAlivePlayers()[i];
-        var socket = io.sockets.connected[currentPlayer.id];
+        var socket = io.of("/").connected[currentPlayer.id];
         if (socket===undefined) {
             console.log(currentPlayer);
             socket = io.sockets.connected[currentPlayer.id];
