@@ -1,6 +1,7 @@
 const chatForm = document.getElementById('chat-form');
 const chatMessages = document.querySelector('.chat-messages');
 const socket = io();
+const userList = document.getElementById('users');
 var currentPlayer;
 var switchOrder = document.getElementById("switchOrder");
 switchOrder.addEventListener("click", clickSwitchOrder);
@@ -16,6 +17,11 @@ socket.emit('joinGame', { username });
 // Display player cards
 socket.on('showIdentity', player => {
     outputIdentity(player);
+});
+
+socket.on('roomUsers', users => {
+    console.log('roomUsers');
+    outputUsers(users);
 });
 
 // Displays player typed messages
@@ -267,4 +273,14 @@ function outputMessage(message) {
         ${message}
     </p>`;
     document.querySelector('.chat-messages').appendChild(div);
+}
+
+// Add users to DOM
+function outputUsers(users) {
+    userList.innerHTML = '';
+    users.forEach(user=>{
+      const li = document.createElement('li');
+      li.innerText = `${user.username} Player: ${user.playerId+1}`;
+      userList.appendChild(li);
+    });
 }
