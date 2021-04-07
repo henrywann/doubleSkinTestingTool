@@ -251,14 +251,14 @@ function clickSwitchOrder() {
 function readyToPlay() {
     document.querySelector('#switchOrder').disabled = true;
     document.querySelector('#ready').disabled = true;
-    console.log(currentPlayer);
+    // console.log(currentPlayer);
     socket.emit('playerReady', currentPlayer);
 }
 
 function outputPlayerChatMessage(message, playername, playerId) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML =`<p class="meta">${playername} <span> Player ${playerId}</span></p>
+    div.innerHTML =`<p class="meta">${playername} <span> Player ${playerId+1}</span></p>
     <p class="text">
         ${message}
     </p>`;
@@ -280,7 +280,8 @@ function outputUsers(users) {
     userList.innerHTML = '';
     users.forEach(user=>{
       const li = document.createElement('li');
-      li.innerText = `${user.username} Player: ${user.playerId+1}`;
+      const numOfCards = user.card1===''?1:2;
+      li.innerText = `${user.username} Player: ${user.playerId+1} # of cards: ${numOfCards}`;
       userList.appendChild(li);
     });
 }

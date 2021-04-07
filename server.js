@@ -192,6 +192,7 @@ function voteComplete(voteIndex) {
                 } else if (isGoodGuysWon()) {
                     io.emit('message', 'Game Over! Good Guys Won!');
                 } else {
+                    io.emit('roomUsers', getAlivePlayers());
                     proceedToNextNight();
                 }
             }
@@ -303,6 +304,7 @@ function roundOverAction(round, io) {
     const deadPlayers = calculateRoundResult(round, io);
     const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
     io.emit('message', deadPlayerMessage);
+    io.emit('roomUsers', getAlivePlayers());
     if (isBadGuysWon()) {
         io.emit('message', 'Game Over! Bad Guys Won!');
     } else if (isGoodGuysWon()) {
