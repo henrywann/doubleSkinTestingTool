@@ -25,15 +25,11 @@ function playerJoin(id, username, isNewGame) {
     roundAction = [];
     players = [];
   }
+  if (players.length >= 6) {
+    console.log('more than 6 players joined')
+    return null;
+  }
   return assignPlayer(id, username);
-  // if (players.length < 6) {
-  // } else {
-  //   console.log('more than 6 players joined')
-  //   players = [];
-  //   cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
-  //   'villager', 'villager', 'villager', 'villager', 'villager'];
-  //   return assignPlayer(id, username);
-  // }
 }
 
 function getPlayerSide(card1, card2) {

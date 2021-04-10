@@ -57,9 +57,14 @@ io.on('connection', socket => {
         if (socketId==null) {
             const player = playerJoin(socket.id, username, isNewGame);
             isNewGame = false;
-            socket.emit('showIdentity', player);
-            allPlayers.push(player);
-            io.emit('roomUsers', allPlayers);
+            if (player == null) {
+                socket.emit('message', 'Speculator mode. Please wait for game to finish.');
+                socket.emit('roomUsers', allPlayers);
+            } else {
+                socket.emit('showIdentity', player);
+                allPlayers.push(player);
+                io.emit('roomUsers', allPlayers);
+            }
         } else {
             var isRefreshedPlayerReady = false;
             console.log(`socket.id: ${socket.id}`);
