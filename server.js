@@ -34,13 +34,29 @@ var whoVotedWho = [];
 var isFirstRoundVoting = true;
 var playersWithMostVotes = [];
 var isPureVillagerExists = false;
+var isGunSmithFired = false;
+var isNewGame = true;
+
+function resetGlobalVariablesForNewGame() {
+    round = 0;
+    voteblePlayers = [];
+    allPlayers = [];
+    playersThatVoted = 0;
+    whoVotedWho = [];
+    isFirstRoundVoting = true;
+    playersWithMostVotes = [];
+    isPureVillagerExists = false;
+    isGunSmithFired = false;
+    isNewGame = true;
+}
 
 // Run with client connects
 io.on('connection', socket => {
     var playerList = [];
     socket.on('joinGame', ({username, socketId, state, voteIndex}) => {
         if (socketId==null) {
-            const player = playerJoin(socket.id, username);
+            const player = playerJoin(socket.id, username, isNewGame);
+            isNewGame = false;
             socket.emit('showIdentity', player);
             allPlayers.push(player);
             io.emit('roomUsers', allPlayers);
@@ -129,6 +145,7 @@ io.on('connection', socket => {
     });
 
     socket.on('gunPlayer', (playerId) => {
+        isGunSmithFired = true;
         console.log(`gun playerId: ${typeof playerId}`);
         if (playerId==='0') {
             noPlayerAction('gun',round);
@@ -227,8 +244,10 @@ function voteComplete(voteIndex) {
                 io.emit('message', `Player(s) voted out this round: ${votedOutPlayers}`);
                 if (isBadGuysWon()) {
                     io.emit('message', 'Game Over! Bad Guys Won!');
+                    resetGlobalVariablesForNewGame();
                 } else if (isGoodGuysWon()) {
                     io.emit('message', 'Game Over! Good Guys Won!');
+                    resetGlobalVariablesForNewGame();
                 } else {
                     io.emit('roomUsers', getAlivePlayers());
                     proceedToNextNight();
@@ -289,7 +308,7 @@ function proceedToNextNight() {
     } else {
         noPlayerAction('inject',round);
     }
-    if (gunSmithCount > 0) {
+    if (gunSmithCount > 0 && !isGunSmithFired) {
         io.to('gunSmith').emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round});
     } else {
         noPlayerAction('gun',round);
@@ -307,8 +326,10 @@ function roundOverAction(round, io) {
     io.emit('roomUsers', getAlivePlayers());
     if (isBadGuysWon()) {
         io.emit('message', 'Game Over! Bad Guys Won!');
+        resetGlobalVariablesForNewGame();
     } else if (isGoodGuysWon()) {
         io.emit('message', 'Game Over! Good Guys Won!');
+        resetGlobalVariablesForNewGame();
     } else {
         // voteblePlayers consists elements of playerId and alreadyVoted flag
         voteblePlayers = getVotePlayers(deadPlayers);

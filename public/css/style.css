@@ -126,6 +126,11 @@ a {
 	flex: 1;
 }
 
+.gunSmith-container {
+	padding: 20px 30px;
+	background-color: var(--dark-color-a);
+}
+
 /* Join Page */
 .join-container {
 	max-width: 500px;
