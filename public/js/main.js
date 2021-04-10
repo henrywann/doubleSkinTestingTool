@@ -11,8 +11,13 @@ ready.addEventListener("click", readyToPlay);
 const { username, room } = Qs.parse(location.search, {
   ignoreQueryPrefix: true
 });
-// Join chatroom
-socket.emit('joinGame', { username });
+// Join Game
+socket.emit('joinGame', ({ 
+    username: username,
+    socketId: sessionStorage.getItem("socketId"),
+    state: sessionStorage.getItem("state"),
+    voteIndex: sessionStorage.getItem("voteIndex")
+ }));
 
 // Display player cards
 socket.on('showIdentity', player => {
@@ -39,29 +44,31 @@ socket.on('message', message => {
 });
 
 socket.on('killerAction', ({alivePlayers, round}) => {
-    console.log(alivePlayers);
+    sessionStorage.setItem("state", "killerAction");
     outputKillerSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('policeAction', ({alivePlayers, round}) => {
-    console.log("police action");
+    sessionStorage.setItem("state", "policeAction");
     outputPoliceSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('doctorAction', ({alivePlayers, round}) => {
+    sessionStorage.setItem("state", "doctorAction");
     outputDoctorSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('gunSmithAction', ({alivePlayers, round}) => {
+    sessionStorage.setItem("state", "gunSmithAction");
     outputGunSmithSelection(alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('gunComplete', ({playerId, alivePlayers, round}) => {
-    console.log('received gunComplete');
+    sessionStorage.setItem("state", "gunComplete");
     alivePlayers.forEach(e => {
         document.getElementById(`gunSmith${e.playerId+1}-${round}`).disabled = true;
     });
@@ -73,7 +80,7 @@ socket.on('gunComplete', ({playerId, alivePlayers, round}) => {
 });
 
 socket.on('injectComplete', ({playerId, alivePlayers, round}) => {
-    console.log('received injectComplete');
+    sessionStorage.setItem("state", "injectComplete");
     alivePlayers.forEach(e => {
         document.getElementById(`doctor${e.playerId+1}-${round}`).disabled = true;
     });
@@ -82,7 +89,7 @@ socket.on('injectComplete', ({playerId, alivePlayers, round}) => {
 
 
 socket.on('killComplete', ({playerId, alivePlayers, round}) => {
-    console.log('received killComplete');
+    sessionStorage.setItem("state", "killComplete");
     alivePlayers.forEach(e => {
         document.getElementById(`kill${e.playerId+1}-${round}`).disabled = true;
     });
@@ -90,7 +97,7 @@ socket.on('killComplete', ({playerId, alivePlayers, round}) => {
 });
 
 socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
-    console.log('received checkComplete');
+    sessionStorage.setItem("state", "checkComplete");
     alivePlayers.forEach(e => {
         document.getElementById(`police${e.playerId+1}-${round}`).disabled = true;
     });
@@ -104,6 +111,7 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
 });
 
 socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers, round, isFirstRoundVoting}) => {
+    sessionStorage.setItem("state", "votePlayer");
     sessionStorage.setItem("voteIndex", voteIndex);
     voteblePlayers.forEach(e => {
         if (e.playerId===sessionStorage.getItem("playerId")) {
