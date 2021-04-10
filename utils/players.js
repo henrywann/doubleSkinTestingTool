@@ -16,16 +16,24 @@ function getAlivePlayers() {
   return alivePlayers;
 }
 // Join player to game and show cards
-function playerJoin(id, username) {
-  if (players.length < 6) {
-    return assignPlayer(id, username);
-  } else {
-    console.log('more than 6 players joined')
+function playerJoin(id, username, isNewGame) {
+  if (isNewGame) {
+    cards = [
+      'killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
+      'villager', 'villager', 'villager', 'villager', 'villager'];
+    alivePlayers = [];
+    roundAction = [];
     players = [];
-    cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
-    'villager', 'villager', 'villager', 'villager', 'villager'];
-    return assignPlayer(id, username);
   }
+  return assignPlayer(id, username);
+  // if (players.length < 6) {
+  // } else {
+  //   console.log('more than 6 players joined')
+  //   players = [];
+  //   cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
+  //   'villager', 'villager', 'villager', 'villager', 'villager'];
+  //   return assignPlayer(id, username);
+  // }
 }
 
 function getPlayerSide(card1, card2) {
