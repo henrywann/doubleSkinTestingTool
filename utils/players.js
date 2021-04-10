@@ -161,7 +161,7 @@ function calculateRoundResult(round, io) {
 function updateExistingPlayers(io) {
   alivePlayers.forEach(e => {
     if (e.card1==='' && e.card2==='') {
-      const socket = io.sockets.connected[e.id];
+      const socket = io.of('/').sockets.get(e.id);
       socket.leave('policeGroup');
       socket.leave('doctor');
       socket.leave('killerGroup');

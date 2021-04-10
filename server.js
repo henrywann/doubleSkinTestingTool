@@ -14,6 +14,10 @@ const {
     updateExistingPlayers
 } = require('./utils/players');
 
+const {
+    updateSocketRoomRole
+} = require('./utils/serverHelper');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
@@ -21,6 +25,7 @@ const io = socketio(server);
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
+const playerLength = 6;
 var round = 0;
 var voteblePlayers = [];
 var allPlayers = [];
@@ -33,18 +38,51 @@ var isPureVillagerExists = false;
 // Run with client connects
 io.on('connection', socket => {
     var playerList = [];
-    socket.on('joinGame', ({username}) => {
-        const player = playerJoin(socket.id, username);
-        socket.emit('showIdentity', player);
-        // console.log(player);
-        allPlayers.push(player);
-
-        io.emit('roomUsers', allPlayers);
+    socket.on('joinGame', ({username, socketId, state, voteIndex}) => {
+        if (socketId==null) {
+            const player = playerJoin(socket.id, username);
+            socket.emit('showIdentity', player);
+            allPlayers.push(player);
+            io.emit('roomUsers', allPlayers);
+        } else {
+            var isRefreshedPlayerReady = false;
+            console.log(`socket.id: ${socket.id}`);
+            console.log(`socketId: ${socketId}`);
+            getAlivePlayers().forEach(e => {
+                if (e.id === socketId) {
+                    console.log('found refresh player after ready');
+                    e.id = socket.id;
+                    // show identity again and update the socketId in session storage in client side
+                    socket.emit('showIdentity', e);
+                    isRefreshedPlayerReady = true;
+                    var role = updateSocketRoomRole(io, e);
+                    if (state==="votePlayer") {
+                        socket.emit('votePlayer', ({
+                            voteThisPlayer: voteblePlayers[voteIndex], 
+                            voteIndex: voteIndex, 
+                            voteblePlayers: voteblePlayers, 
+                            round: round,
+                            isFirstRoundVoting: isFirstRoundVoting
+                        }));
+                    }
+                }
+            });
+            if (!isRefreshedPlayerReady) {
+                console.log('found refresh player before ready');
+                console.log(allPlayers.length);
+                allPlayers.forEach(e => {
+                    if (e.id===socketId) {
+                        e.id = socket.id;
+                        socket.emit('showIdentity', e);
+                    }
+                });
+            }
+        }
     });
 
     socket.on('playerReady', (currentPlayer) => {
         playerReady(socket.id, currentPlayer);
-        if (getAlivePlayers().length==6) {
+        if (getAlivePlayers().length==playerLength) {
             getAlivePlayers().forEach(e => {
               if (e.isPureVillager) {
                 isPureVillagerExists = true;
@@ -212,52 +250,18 @@ function voteComplete(voteIndex) {
 
 function proceedToNextNight() {
     console.log('proceeding to next round');
+    var killerCount = 0;
+    var policeCount = 0;
+    var doctorCount = 0;
+    var gunSmithCount = 0;
     var i;
     for (i=0; i<getAlivePlayers().length; i++) {
         const currentPlayer = getAlivePlayers()[i];
-        var socket = io.of("/").connected[currentPlayer.id];
-        if (socket===undefined) {
-            console.log(currentPlayer);
-            socket = io.sockets.connected[currentPlayer.id];
-        }
-        if (currentPlayer.card1==='killer') {
-            socket.join('killerGroup');
-        } else if (currentPlayer.card1==='' && currentPlayer.card2==='killer') {
-            socket.leave('policeGroup');
-            socket.leave('doctor');
-            socket.leave('gunSmith');
-            socket.join('killerGroup');
-        }
-        if (currentPlayer.card1==='police') {
-            socket.join('policeGroup');
-        } else if (currentPlayer.card1==='' && currentPlayer.card2==='police') {
-            socket.leave('killerGroup');
-            socket.leave('doctor');
-            socket.leave('gunSmith');
-            socket.join('policeGroup');
-        }
-        if (currentPlayer.card1==='doctor') {
-            socket.join('doctor');
-        } else if (currentPlayer.card1==='' && currentPlayer.card2==='doctor') {
-            socket.leave('policeGroup');
-            socket.leave('killerGroup');
-            socket.leave('gunSmith');
-            socket.join('doctor');
-        }
-        if (currentPlayer.card1==='gunSmith') {
-            socket.join('gunSmith');
-        } else if (currentPlayer.card1==='' && currentPlayer.card2==='gunSmith') {
-            socket.leave('policeGroup');
-            socket.leave('doctor');
-            socket.leave('killerGroup');
-            socket.join('gunSmith');
-        }
-        if (currentPlayer.card1==='' && (currentPlayer.card2==='villager' || currentPlayer.card2==='')) {
-            socket.leave('policeGroup');
-            socket.leave('doctor');
-            socket.leave('killerGroup');
-            socket.leave('gunSmith');
-        } 
+        var role = updateSocketRoomRole(io, currentPlayer);
+        if (role==='killer') killerCount++;
+        else if (role==='police') policeCount++;
+        else if (role==='doctor') doctorCount++;
+        else if (role==='gunSmith') gunSmithCount++;
     }
 
     // Increasing round count and reseting all voting related global variables
@@ -268,10 +272,6 @@ function proceedToNextNight() {
     playersWithMostVotes = [];
     isFirstRoundVoting = true;
 
-    const killerCount = io.nsps['/'].adapter.rooms['killerGroup']===undefined?0:io.nsps['/'].adapter.rooms['killerGroup'].length;
-    const policeCount = io.nsps['/'].adapter.rooms['policeGroup']===undefined?0:io.nsps['/'].adapter.rooms['policeGroup'].length;
-    const doctorCount = io.nsps['/'].adapter.rooms['doctor']===undefined?0:io.nsps['/'].adapter.rooms['doctor'].length;
-    const gunSmithCount = io.nsps['/'].adapter.rooms['gunSmith']===undefined?0:io.nsps['/'].adapter.rooms['gunSmith'].length;
     // console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
     io.emit('message', `Night ${round} Starting!`);
     if (killerCount > 0) {
