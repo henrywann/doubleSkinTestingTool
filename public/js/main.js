@@ -140,17 +140,33 @@ chatForm.addEventListener('submit', e => {
 
 function outputIdentity(player) {
     currentPlayer = player;
-    const div = document.createElement('div');
-    div.classList.add('message');
-    div.innerHTML =`<p class="meta">Admin <span>9:12pm</span></p>
-    <p class="text">
-        Hello [Player ${player.playerId+1}] ${player.username}, here're your identities! \n
-        card1: ${player.card1}
-        card2: ${player.card2}
-    </p>`;
-    document.querySelector('.chat-messages').appendChild(div);
-    sessionStorage.setItem("playerId", player.playerId+1);
-    sessionStorage.setItem("socketId", player.id);
+    console.log(currentPlayer);
+    // check if admin-message div already exist
+    if_admin_exist = document.getElementsByClassName("admin-message").length > 0;
+    if (if_admin_exist) {
+        admin_div = document.getElementsByClassName("admin-message")[0]
+        console.log(admin_div);
+        admin_div.innerHTML =`<p class="meta">Admin</p>
+        <p class="text">
+            Hello [Player ${player.playerId+1}] ${player.username}, here're your identities! \n
+            card1: ${player.card1}
+            card2: ${player.card2}
+        </p>`;
+        sessionStorage.setItem("playerId", player.playerId+1);
+        sessionStorage.setItem("socketId", player.id);
+    } else {
+        const div = document.createElement('div');
+        div.classList.add('admin-message');
+        div.innerHTML =`<p class="meta">Admin</p>
+        <p class="text">
+            Hello [Player ${player.playerId+1}] ${player.username}, here're your identities! \n
+            card1: ${player.card1}
+            card2: ${player.card2}
+        </p>`;
+        document.querySelector('.chat-messages').appendChild(div);
+        sessionStorage.setItem("playerId", player.playerId+1);
+        sessionStorage.setItem("socketId", player.id);
+    }
 }
 
 function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {
