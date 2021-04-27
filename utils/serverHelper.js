@@ -55,6 +55,70 @@ function updateSocketRoomRole(io, currentPlayer) {
     }
 }
 
+function getVotePlayers(deadPlayers) {
+    var votePlayers=[];
+    // console.log(`num of alive players: ${getAlivePlayers().length}`);
+    for (var i=0; i < getAlivePlayers().length; i++) {
+        var exist = false;
+        for (var j=0; j<deadPlayers.length; j++) {
+            if ((parseInt(getAlivePlayers()[i].playerId)+1).toString() === deadPlayers[j]) {
+                exist = true;
+            }
+        }
+        if (!exist) {
+            votePlayers.push((parseInt(getAlivePlayers()[i].playerId)+1).toString());
+        }
+    }
+    var voteOrder = [];
+    var firstDead = deadPlayers[0];
+    if (firstDead===undefined) {
+        firstDead = Math.floor(Math.random() * (votePlayers.length));
+    }
+    for (var i=0; i<votePlayers.length; i++) {
+        if (parseInt(votePlayers[i]) > parseInt(firstDead)) {
+            var l1 = votePlayers.slice(i);
+            var l2 = votePlayers.slice(0, i);
+            voteOrder = l1.concat(l2);
+            break;
+        }
+    }
+    if (voteOrder.length===0) {
+        voteOrder = votePlayers;
+    } 
+    var result = [];
+    voteOrder.forEach(e => {
+        result.push({playerId: e, numOfVotes: 0, alreadyVoted: "N"});
+    });
+    return result;
+}
+
+function isBadGuysWon() {
+    var pureVillagerExists = false;
+    var godExists = false;
+    getAlivePlayers().forEach(e => {
+        if (e.isPureVillager) {
+            pureVillagerExists = true;
+        }
+        if (e.side > 0) {
+            godExists = true;
+        }
+    });
+    return (!pureVillagerExists && isPureVillagerExists) || !godExists;
+}
+
+function isGoodGuysWon() {
+    var result = true;
+    getAlivePlayers().forEach(e => {
+        if (e.side < 0) {
+            result = false;
+        }
+    });
+    return result;
+}
+
 module.exports = {
-    updateSocketRoomRole
+    updateSocketRoomRole,
+    isBadGuysWon,
+    isGoodGuysWon,
+    getVotePlayers
 }

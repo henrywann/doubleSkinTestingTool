@@ -15,6 +15,11 @@ var roundAction = [];
 function getAlivePlayers() {
   return alivePlayers;
 }
+
+function sortAlivePlayers() {
+  alivePlayers.sort((a, b) => (a.playerId > b.playerId) ? 1 : -1);
+}
+
 // Join player to game and show cards
 function playerJoin(id, username, isNewGame) {
   if (isNewGame) {
@@ -210,5 +215,6 @@ module.exports = {
   getAlivePlayers,
   populateDeadPlayers,
   updateExistingPlayers,
-  printAlivePlayers
+  printAlivePlayers,
+  sortAlivePlayers
 };
