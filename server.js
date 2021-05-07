@@ -30,6 +30,7 @@ const io = socketio(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 const playerLength = 6;
+const isUsingSocketRoom = false;
 var round = 0;
 var voteblePlayers = [];
 var allPlayers = [];
@@ -120,7 +121,7 @@ io.on('connection', socket => {
 
     socket.on('killPlayer', (playerId) => {
         playerAction(playerId, 'kill', round);
-        io.to('killerGroup').emit('killComplete', {
+        io.emit('killComplete', {
             playerId: playerId, 
             alivePlayers: getAlivePlayers(),
             round: round
@@ -132,7 +133,7 @@ io.on('connection', socket => {
 
     socket.on('checkPlayer', (playerId) => {
         playerAction(playerId, 'check', round);
-        io.to('policeGroup').emit('checkComplete', {
+        io.emit('checkComplete', {
             playerId: playerId,
             alivePlayers: getAlivePlayers(),
             round: round
@@ -144,7 +145,7 @@ io.on('connection', socket => {
 
     socket.on('injectPlayer', (playerId) => {
         playerAction(playerId, 'inject', round);
-        io.to('doctor').emit('injectComplete', {
+        io.emit('injectComplete', {
             playerId: playerId,
             alivePlayers: getAlivePlayers(),
             round: round
@@ -162,7 +163,7 @@ io.on('connection', socket => {
         } else {
             playerAction(playerId, 'gun', round);
         }
-        io.to('gunSmith').emit('gunComplete', {
+        io.emit('gunComplete', {
             playerId: playerId,
             alivePlayers: getAlivePlayers(),
             round: round
@@ -210,6 +211,8 @@ io.on('connection', socket => {
 function voteComplete(voteIndex) {
     playersThatVoted++;
     if (playersThatVoted===voteblePlayers.length) {
+        var curPlayer = voteblePlayers[parseInt(voteIndex)].playerId;
+        io.emit('message', `Player ${curPlayer} received votes from player(s): ${whoVotedWho}`);
         playersThatVoted = 0;
         if (parseInt(voteIndex)===(playersWithMostVotes.length>1?playersWithMostVotes.length-1:voteblePlayers.length-1)) {
             // calculate vote result
@@ -252,7 +255,7 @@ function voteComplete(voteIndex) {
                     votedOutPlayers.push(e.playerId);
                 });
                 io.emit('message', `Player(s) voted out this round: ${votedOutPlayers}`);
-                if (isBadGuysWon()) {
+                if (isBadGuysWon(isPureVillagerExists)) {
                     io.emit('message', 'Game Over! Bad Guys Won!');
                     resetGlobalVariablesForNewGame();
                 } else if (isGoodGuysWon()) {
@@ -264,7 +267,8 @@ function voteComplete(voteIndex) {
                 }
             }
         } else {
-            io.emit('message', `Players who voted yes ${whoVotedWho}`);
+            // var curPlayer = voteblePlayers[parseInt(voteIndex)].playerId;
+            // io.emit('message', `Player ${curPlayer} received votes from player(s): ${whoVotedWho}`);
             whoVotedWho.length=0;
             io.emit('votePlayer', ({
                 voteThisPlayer: playersWithMostVotes.length>1?playersWithMostVotes[parseInt(voteIndex)+1]:voteblePlayers[parseInt(voteIndex)+1], 
@@ -293,6 +297,7 @@ function proceedToNextNight() {
         else if (role==='gunSmith') gunSmithCount++;
     }
 
+    io.emit('updateCurrentCard', getAlivePlayers());
     // Increasing round count and reseting all voting related global variables
     round++;
     playersThatVoted = 0;
@@ -304,22 +309,38 @@ function proceedToNextNight() {
     // console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
     io.emit('message', `Night ${round} Starting!`);
     if (killerCount > 0) {
-        io.to('killerGroup').emit('killerAction', {alivePlayers: getAlivePlayers(), round: round});
+        if (isUsingSocketRoom) {
+            io.to('killerGroup').emit('killerAction', {alivePlayers: getAlivePlayers(), round: round});
+        } else {
+            io.emit('killerAction', {alivePlayers: getAlivePlayers(), round: round});
+        }
     } else {
         noPlayerAction('kill',round);
     }
     if (policeCount > 0) {
-        io.to('policeGroup').emit('policeAction', {alivePlayers: getAlivePlayers(), round: round});
+        if (isUsingSocketRoom) {
+            io.to('policeGroup').emit('policeAction', {alivePlayers: getAlivePlayers(), round: round});
+        } else {
+            io.emit('policeAction', {alivePlayers: getAlivePlayers(), round: round});
+        }
     } else {
         noPlayerAction('check',round);
     }
     if (doctorCount > 0) {
-        io.to('doctor').emit('doctorAction', {alivePlayers: getAlivePlayers(), round: round});
+        if (isUsingSocketRoom) {
+            io.to('doctor').emit('doctorAction', {alivePlayers: getAlivePlayers(), round: round});
+        } else {
+            io.emit('doctorAction', {alivePlayers: getAlivePlayers(), round: round});
+        }
     } else {
         noPlayerAction('inject',round);
     }
     if (gunSmithCount > 0 && !isGunSmithFired) {
-        io.to('gunSmith').emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round});
+        if (isUsingSocketRoom) {
+            io.to('gunSmith').emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round});
+        } else {
+            io.emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round});
+        }
     } else {
         noPlayerAction('gun',round);
     }
@@ -334,7 +355,7 @@ function roundOverAction(round, io) {
     const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
     io.emit('message', deadPlayerMessage);
     io.emit('roomUsers', getAlivePlayers());
-    if (isBadGuysWon()) {
+    if (isBadGuysWon(isPureVillagerExists)) {
         io.emit('message', 'Game Over! Bad Guys Won!');
         resetGlobalVariablesForNewGame();
     } else if (isGoodGuysWon()) {

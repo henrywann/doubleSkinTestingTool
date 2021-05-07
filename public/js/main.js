@@ -44,70 +44,86 @@ socket.on('message', message => {
 });
 
 socket.on('killerAction', ({alivePlayers, round}) => {
-    sessionStorage.setItem("state", "killerAction");
-    outputKillerSelection(alivePlayers, round);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (sessionStorage.getItem("currentCard")==="killer") {
+        sessionStorage.setItem("state", "killerAction");
+        outputKillerSelection(alivePlayers, round);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 });
 
 socket.on('policeAction', ({alivePlayers, round}) => {
-    sessionStorage.setItem("state", "policeAction");
-    outputPoliceSelection(alivePlayers, round);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (sessionStorage.getItem("currentCard")==="police") {
+        sessionStorage.setItem("state", "policeAction");
+        outputPoliceSelection(alivePlayers, round);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 });
 
 socket.on('doctorAction', ({alivePlayers, round}) => {
-    sessionStorage.setItem("state", "doctorAction");
-    outputDoctorSelection(alivePlayers, round);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (sessionStorage.getItem("currentCard")==="doctor") {
+        sessionStorage.setItem("state", "doctorAction");
+        outputDoctorSelection(alivePlayers, round);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 });
 
 socket.on('gunSmithAction', ({alivePlayers, round}) => {
-    sessionStorage.setItem("state", "gunSmithAction");
-    outputGunSmithSelection(alivePlayers, round);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (sessionStorage.getItem("currentCard")==="gunSmith") {
+        sessionStorage.setItem("state", "gunSmithAction");
+        outputGunSmithSelection(alivePlayers, round);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 });
 
 socket.on('gunComplete', ({playerId, alivePlayers, round}) => {
-    sessionStorage.setItem("state", "gunComplete");
-    alivePlayers.forEach(e => {
-        document.getElementById(`gunSmith${e.playerId+1}-${round}`).disabled = true;
-    });
-    var noGunBtn = document.getElementById(`noGun-${round}`);
-    noGunBtn.disabled = true;
-    if (playerId!=='0') {
-        alert(`Gunned Player ${playerId}!`);
+    if (sessionStorage.getItem("currentCard")==="gunSmith") {
+        sessionStorage.setItem("state", "gunComplete");
+        alivePlayers.forEach(e => {
+            document.getElementById(`gunSmith${e.playerId+1}-${round}`).disabled = true;
+        });
+        var noGunBtn = document.getElementById(`noGun-${round}`);
+        noGunBtn.disabled = true;
+        if (playerId!=='0') {
+            alert(`Gunned Player ${playerId}!`);
+        }
     }
 });
 
 socket.on('injectComplete', ({playerId, alivePlayers, round}) => {
-    sessionStorage.setItem("state", "injectComplete");
-    alivePlayers.forEach(e => {
-        document.getElementById(`doctor${e.playerId+1}-${round}`).disabled = true;
-    });
-    alert(`Injected Player ${playerId}!`);
+    if (sessionStorage.getItem("currentCard")==="doctor") {
+        sessionStorage.setItem("state", "injectComplete");
+        alivePlayers.forEach(e => {
+            document.getElementById(`doctor${e.playerId+1}-${round}`).disabled = true;
+        });
+        alert(`Injected Player ${playerId}!`);
+    }
 });
 
 
 socket.on('killComplete', ({playerId, alivePlayers, round}) => {
-    sessionStorage.setItem("state", "killComplete");
-    alivePlayers.forEach(e => {
-        document.getElementById(`kill${e.playerId+1}-${round}`).disabled = true;
-    });
-    alert(`Killed Player ${playerId}!`);
+    if (sessionStorage.getItem("currentCard")==="killer") {
+        sessionStorage.setItem("state", "killComplete");
+        alivePlayers.forEach(e => {
+            document.getElementById(`kill${e.playerId+1}-${round}`).disabled = true;
+        });
+        alert(`Killed Player ${playerId}!`);
+    }
 });
 
 socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
-    sessionStorage.setItem("state", "checkComplete");
-    alivePlayers.forEach(e => {
-        document.getElementById(`police${e.playerId+1}-${round}`).disabled = true;
-    });
-    alivePlayers.forEach(e => {
-        if (e.playerId === playerId-1) {
-            const currentCard = e.card1 === '' ? e.card2: e.card1;
-            const currentId = currentCard ==='killer'? 'Bad': 'Good';
-            alert(`Player ${playerId}'s Current Identity is ${currentId}`);
-        }
-    });
+    if (sessionStorage.getItem("currentCard")==="police") {
+        sessionStorage.setItem("state", "checkComplete");
+        alivePlayers.forEach(e => {
+            document.getElementById(`police${e.playerId+1}-${round}`).disabled = true;
+        });
+        alivePlayers.forEach(e => {
+            if (e.playerId === playerId-1) {
+                const currentCard = e.card1 === '' ? e.card2: e.card1;
+                const currentId = currentCard ==='killer'? 'Bad': 'Good';
+                alert(`Player ${playerId}'s Current Identity is ${currentId}`);
+            }
+        });
+    }
 });
 
 socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers, round, isFirstRoundVoting}) => {
@@ -123,6 +139,19 @@ socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers, round, isFi
             }
         }
     })
+});
+
+socket.on('updateCurrentCard', (alivePlayers) => {
+    console.log('entering updateCurrentCard');
+    alivePlayers.forEach(e => {
+        console.log(`playerId: ${typeof e.playerId} ${e.playerId}`);
+        if ((e.playerId+1).toString()===sessionStorage.getItem("playerId")) {
+            if (e.card1==='') {
+                console.log("card1 is empty, setting card2 to currentCard");
+                sessionStorage.setItem("currentCard", e.card2);
+            }
+        }
+    });
 });
 
 // Message submit
@@ -275,6 +304,7 @@ function clickSwitchOrder() {
 function readyToPlay() {
     document.querySelector('#switchOrder').disabled = true;
     document.querySelector('#ready').disabled = true;
+    sessionStorage.setItem("currentCard", currentPlayer.card1);
     // console.log(currentPlayer);
     socket.emit('playerReady', currentPlayer);
 }

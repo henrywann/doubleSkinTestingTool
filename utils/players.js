@@ -163,7 +163,6 @@ function calculateRoundResult(round, io) {
     });
   }
   updateExistingPlayers(io);
-  // TODO: remove totally dead players
   return deadPlayers.sort();
 }
 
