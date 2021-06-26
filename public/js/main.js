@@ -2,6 +2,7 @@ const chatForm = document.getElementById('chat-form');
 const chatMessages = document.querySelector('.chat-messages');
 const socket = io();
 const userList = document.getElementById('users');
+const gunSmithAction = document.getElementById('activateGun');
 var currentPlayer;
 var switchOrder = document.getElementById("switchOrder");
 switchOrder.addEventListener("click", clickSwitchOrder);
@@ -67,10 +68,10 @@ socket.on('doctorAction', ({alivePlayers, round}) => {
     }
 });
 
-socket.on('gunSmithAction', ({alivePlayers, round}) => {
+socket.on('gunSmithAction', ({alivePlayers, round, isVotingRound}) => {
     if (sessionStorage.getItem("currentCard")==="gunSmith") {
         sessionStorage.setItem("state", "gunSmithAction");
-        outputGunSmithSelection(alivePlayers, round);
+        outputGunSmithSelection(alivePlayers, round, isVotingRound);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 });
@@ -152,6 +153,11 @@ socket.on('updateCurrentCard', (alivePlayers) => {
             }
         }
     });
+});
+
+socket.on('gunSmithVotingRoundAction', (alivePlayers) => {
+    console.log('entering gunSmithVotingRoundAction');
+    outputGunAction();
 });
 
 // Message submit
@@ -236,12 +242,12 @@ function voteNo(player, round, isFirstRoundVoting) {
     socket.emit('voteNo', voteIndex);
 }
 
-function outputGunSmithSelection(alivePlayers, round) {
+function outputGunSmithSelection(alivePlayers, round, isVotingRound) {
     const div = document.createElement('div');
     div.classList.add('message');
     div.innerHTML = '<p class="text">Gun Smith Please Select a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1}, ${isVotingRound})"> ${e.playerId+1} </button>`);
     });
     div.insertAdjacentHTML('beforeEnd', `<button id="noGun-${round}" onclick="gunPlayer(0)">No Gun </button>`);
     document.querySelector('.chat-messages').appendChild(div);
@@ -289,8 +295,9 @@ function killPlayer(playerId) {
     socket.emit('killPlayer', playerId.toString());
 }
 
-function gunPlayer(playerId) {
-    socket.emit('gunPlayer', playerId.toString());
+function gunPlayer(playerId, isVotingRound) {
+    console.log(`isVotingRound: ${isVotingRound}`);
+    socket.emit('gunPlayer', ({playerId: playerId.toString(), isVotingRound: isVotingRound}));
 }
 
 function clickSwitchOrder() {
@@ -338,4 +345,13 @@ function outputUsers(users) {
       li.innerText = `${user.username} Player: ${user.playerId+1} # of cards: ${numOfCards}`;
       userList.appendChild(li);
     });
+}
+
+function outputGunAction() {
+    gunSmithAction.innerHTML = '<button id="gunSmithMidRoundAction" onclick="gunMidRoundAction()"> Fire! </button>';
+    // gunSmithAction.appendChild('<button id="gunSmithMidRoundAction" onclick="gunMidRoundAction()"> Fire! </button>');
+}
+
+function gunMidRoundAction() {
+    socket.emit('gunSmithVotingRoundFire', 'success');
 }
