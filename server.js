@@ -41,6 +41,7 @@ var playersWithMostVotes = [];
 var isPureVillagerExists = false;
 var isGunSmithFired = false;
 var isNewGame = true;
+var gunnedPlayerDuringVoting = -1;
 
 function resetGlobalVariablesForNewGame() {
     round = 0;
@@ -53,6 +54,7 @@ function resetGlobalVariablesForNewGame() {
     isPureVillagerExists = false;
     isGunSmithFired = false;
     isNewGame = true;
+    gunnedPlayerDuringVoting = -1;
 }
 
 // Run with client connects
@@ -155,13 +157,18 @@ io.on('connection', socket => {
         }
     });
 
-    socket.on('gunPlayer', (playerId) => {
-        isGunSmithFired = true;
+    socket.on('gunPlayer', (playerId, isVotingRound) => {
         console.log(`gun playerId: ${typeof playerId}`);
         if (playerId==='0') {
+            isGunSmithFired = false;
             noPlayerAction('gun',round);
         } else {
-            playerAction(playerId, 'gun', round);
+            if (isVotingRound) {
+                gunnedPlayerDuringVoting = playerId;
+            } else {
+                isGunSmithFired = true;
+                playerAction(playerId, 'gun', round);
+            }
         }
         io.emit('gunComplete', {
             playerId: playerId,
@@ -192,7 +199,7 @@ io.on('connection', socket => {
     socket.on('increaseVote', ({votedPlayer, currentPlayerId, voteIndex}) => {
         whoVotedWho.push(currentPlayerId);
         voteblePlayers.forEach(e => {
-            if (e.playerId===votedPlayer.toString()) {
+            if (e.playerId===votedPlayer.toString() && currentPlayerId!==gunnedPlayerDuringVoting) {
                 e.numOfVotes++;
             }
             if (e.playerId===currentPlayerId) {
@@ -204,6 +211,10 @@ io.on('connection', socket => {
 
     socket.on('voteNo', (voteIndex) => {
         voteComplete(voteIndex);
+    });
+
+    socket.on('gunSmithVotingRoundFire', response => {
+        io.emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round, isVotingRound: true});
     });
 
 });
@@ -337,9 +348,9 @@ function proceedToNextNight() {
     }
     if (gunSmithCount > 0 && !isGunSmithFired) {
         if (isUsingSocketRoom) {
-            io.to('gunSmith').emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round});
+            io.to('gunSmith').emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round, isVotingRound: false});
         } else {
-            io.emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round});
+            io.emit('gunSmithAction', {alivePlayers: getAlivePlayers(), round: round, isVotingRound: false});
         }
     } else {
         noPlayerAction('gun',round);
@@ -355,6 +366,7 @@ function roundOverAction(round, io) {
     const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
     io.emit('message', deadPlayerMessage);
     io.emit('roomUsers', getAlivePlayers());
+    io.emit('updateCurrentCard', getAlivePlayers());
     if (isBadGuysWon(isPureVillagerExists)) {
         io.emit('message', 'Game Over! Bad Guys Won!');
         resetGlobalVariablesForNewGame();
@@ -368,6 +380,11 @@ function roundOverAction(round, io) {
         // voteblePlayers.forEach(e => {
         //     console.log(e.playerId);
         // });
+        if (!isGunSmithFired) {
+            console.log('gun smith fire option');
+            io.emit('gunSmithVotingRoundAction', getAlivePlayers());
+        }
+        console.log('no gun smith fire option');
         io.emit('votePlayer', ({
             voteThisPlayer: voteblePlayers[0], 
             voteIndex: 0, 
