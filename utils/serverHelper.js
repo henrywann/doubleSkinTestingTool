@@ -9,6 +9,11 @@ function updateSocketRoomRole(io, currentPlayer) {
         console.log(currentPlayer);
         // socket = io.sockets.connected[currentPlayer.id];
     }
+    if (currentPlayer.card1==='silencer') {
+        return 'silencer';
+    } else if (currentPlayer.card1==='' && currentPlayer.card2==='silencer') {
+        return 'silencer';
+    }
     if (currentPlayer.card1==='killer') {
         // socket.join('killerGroup');
         return 'killer';

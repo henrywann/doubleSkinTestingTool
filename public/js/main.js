@@ -8,6 +8,8 @@ var switchOrder = document.getElementById("switchOrder");
 switchOrder.addEventListener("click", clickSwitchOrder);
 const ready = document.getElementById("ready");
 ready.addEventListener("click", readyToPlay);
+const restart = document.getElementById("restartBtn");
+restart.addEventListener("click", restartGame);
 
 const { username, room } = Qs.parse(location.search, {
   ignoreQueryPrefix: true
@@ -20,6 +22,10 @@ socket.emit('joinGame', ({
     voteIndex: sessionStorage.getItem("voteIndex")
  }));
 
+ socket.on('restartGameForAll', () => {
+    sessionStorage.clear();
+    window.location.href = 'index.html';
+ });
 // Display player cards
 socket.on('showIdentity', player => {
     outputIdentity(player);
@@ -42,6 +48,14 @@ socket.on('message', message => {
     console.log(`Incoming message: ${message}`);
     outputMessage(message);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+socket.on('silencerAction', ({alivePlayers, round}) => {
+    if (sessionStorage.getItem("currentCard")==="silencer") {
+        sessionStorage.setItem("state", "silencerAction");
+        outputSilencerSelection(alivePlayers, round);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
 });
 
 socket.on('killerAction', ({alivePlayers, round}) => {
@@ -108,6 +122,20 @@ socket.on('killComplete', ({playerId, alivePlayers, round}) => {
             document.getElementById(`kill${e.playerId+1}-${round}`).disabled = true;
         });
         alert(`Killed Player ${playerId}!`);
+    }
+});
+
+socket.on('silenceComplete', ({playerId, alivePlayers, round}) => {
+    if (sessionStorage.getItem("currentCard")==="silencer") {
+        sessionStorage.setItem("state", "silenceComplete");
+        alivePlayers.forEach(e => {
+            document.getElementById(`silence${e.playerId+1}-${round}`).disabled = true;
+        });
+        var noSilenceBtn = document.getElementById(`noSilence-${round}`);
+        noSilenceBtn.disabled = true;
+        if (playerId!=='0') {
+            alert(`Silenced Player ${playerId}!`);
+        }
     }
 });
 
@@ -249,7 +277,7 @@ function outputGunSmithSelection(alivePlayers, round, isVotingRound) {
     alivePlayers.forEach(e =>{
         div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1}, ${isVotingRound})"> ${e.playerId+1} </button>`);
     });
-    div.insertAdjacentHTML('beforeEnd', `<button id="noGun-${round}" onclick="gunPlayer(0)">No Gun </button>`);
+    div.insertAdjacentHTML('beforeEnd', `<button id="noGun-${round}" onclick="gunPlayer(0,false)">No Gun </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
@@ -283,6 +311,17 @@ function outputKillerSelection(alivePlayers, round) {
     document.querySelector('.chat-messages').appendChild(div);
 }
 
+function outputSilencerSelection(alivePlayers, round) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = '<p class="text">Silencer Please silence a player<p>';
+    alivePlayers.forEach(e =>{
+        div.insertAdjacentHTML('beforeEnd', `<button id="silence${e.playerId+1}-${round}" onclick="silencePlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+    });
+    div.insertAdjacentHTML('beforeEnd', `<button id="noSilence-${round}" onclick="silencePlayer(0)">No Silence </button>`);
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
 function injectPlayer(injectedPlayer) {
     socket.emit('injectPlayer', injectedPlayer.toString());
 }
@@ -296,8 +335,11 @@ function killPlayer(playerId) {
 }
 
 function gunPlayer(playerId, isVotingRound) {
-    console.log(`isVotingRound: ${isVotingRound}`);
     socket.emit('gunPlayer', ({playerId: playerId.toString(), isVotingRound: isVotingRound}));
+}
+
+function silencePlayer(playerId) {
+    socket.emit('silencePlayer', playerId.toString());
 }
 
 function clickSwitchOrder() {
@@ -314,6 +356,10 @@ function readyToPlay() {
     sessionStorage.setItem("currentCard", currentPlayer.card1);
     // console.log(currentPlayer);
     socket.emit('playerReady', currentPlayer);
+}
+
+function restartGame() {
+    socket.emit('restartGame');
 }
 
 function outputPlayerChatMessage(message, playername, playerId) {

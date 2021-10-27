@@ -6,6 +6,7 @@
 	--light-color: #e6e9ff;
 	--success-color: #5cb85c;
 	--error-color: #d9534f;
+	--black-color-font: #063c7a;
 }
 
 * {
@@ -36,6 +37,15 @@ a {
 	padding: 5px 15px;
 	background: var(--light-color);
 	color: var(--dark-color-a);
+	border: 0;
+	font-size: 17px;
+}
+
+.resartBtn {
+	cursor: pointer;
+	padding: 5px 15px;
+	background: var(--error-color);
+	color: var(--black-color-font);
 	border: 0;
 	font-size: 17px;
 }
