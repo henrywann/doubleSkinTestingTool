@@ -121,7 +121,9 @@ socket.on('killComplete', ({playerId, alivePlayers, round}) => {
         alivePlayers.forEach(e => {
             document.getElementById(`kill${e.playerId+1}-${round}`).disabled = true;
         });
-        alert(`Killed Player ${playerId}!`);
+        const message = `Killed Player ${playerId}!`;
+        outputMessage(message);
+        alert(message);
     }
 });
 
@@ -149,7 +151,9 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
             if (e.playerId === playerId-1) {
                 const currentCard = e.card1 === '' ? e.card2: e.card1;
                 const currentId = currentCard ==='killer'? 'Bad': 'Good';
-                alert(`Player ${playerId}'s Current Identity is ${currentId}`);
+                const message = `Player ${playerId}'s Current Identity is ${currentId}`;
+                outputMessage(message);
+                alert(message);
             }
         });
     }
@@ -172,15 +176,20 @@ socket.on('votePlayer', ({voteThisPlayer, voteIndex, voteblePlayers, round, isFi
 
 socket.on('updateCurrentCard', (alivePlayers) => {
     console.log('entering updateCurrentCard');
+    var isPlayerAlive = false;
     alivePlayers.forEach(e => {
         console.log(`playerId: ${typeof e.playerId} ${e.playerId}`);
         if ((e.playerId+1).toString()===sessionStorage.getItem("playerId")) {
+            isPlayerAlive = true;
             if (e.card1==='') {
                 console.log("card1 is empty, setting card2 to currentCard");
                 sessionStorage.setItem("currentCard", e.card2);
             }
         }
     });
+    if (!isPlayerAlive) {
+        sessionStorage.setItem("currentCard", "");
+    }
 });
 
 socket.on('gunSmithVotingRoundAction', (alivePlayers) => {
