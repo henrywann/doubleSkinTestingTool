@@ -3,8 +3,8 @@ const e = require("express");
 // players[] keeps track of how many players joined the game. alivePlayers is how many players are ready
 var players = [];
 
-var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
-'villager', 'villager', 'villager', 'villager', 'villager'];
+var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager', 
+'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
 
 // var cards = ['killer', 'villager', 'villager', 'police', 'villager', 'gunSmith', 'villager', 
 // 'doctor', 'killer', 'villager', 'police', 'villager'];
@@ -24,14 +24,14 @@ function sortAlivePlayers() {
 function playerJoin(id, username, isNewGame) {
   if (isNewGame) {
     cards = [
-      'killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 
-      'villager', 'villager', 'villager', 'villager', 'villager'];
+      'killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager', 
+      'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
     alivePlayers = [];
     roundAction = [];
     players = [];
   }
-  if (players.length >= 6) {
-    console.log('more than 6 players joined')
+  if (players.length >= 7) {
+    console.log('more than 7 players joined')
     return null;
   }
   return assignPlayer(id, username);
@@ -41,9 +41,9 @@ function getPlayerSide(card1, card2) {
   let map = new Map();
   map.set('killer', -4);
   map.set('police', 3);
-  map.set('silencer', -2);
+  map.set('silencer', -1);
   map.set('doctor', 1);
-  map.set('gunSmith', 1);
+  map.set('gunSmith', 2);
   map.set('villager', 0);
   return map.get(card1) + map.get(card2);
 }
@@ -79,7 +79,7 @@ function playerReady(id, currentPlayer) {
 
 function playerAction(playerId, action, round) {
   if (roundAction[round-1]==undefined) {
-    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1};
+    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1};
     roundAction.push(getThisRoundAction(thisRound, action, playerId));
   } else {
     var thisRound = roundAction[round-1];
@@ -96,13 +96,15 @@ function getThisRoundAction(thisRound, action, playerId) {
     thisRound.gunned = playerId;
   } else if (action==='inject') {
     thisRound.injected = playerId;
+  } else if (action==='silence') {
+    thisRound.silenced = playerId;
   }
   return thisRound;
 }
 
 function noPlayerAction(action, round) {
   if (roundAction[round-1]==undefined) {
-    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1};
+    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1};
     roundAction.push(getThisRoundNoAction(thisRound, action));
   } else {
     var thisRound = roundAction[round-1];
@@ -119,6 +121,8 @@ function getThisRoundNoAction(thisRound, action) {
     thisRound.gunned = 0;
   } else if (action==='inject') {
     thisRound.injected = 0;
+  } else if (action==='silence') {
+    thisRound.silenced = 0;
   }
   return thisRound;
 }
@@ -128,9 +132,10 @@ function isRoundOver(round) {
   if (currentRound===undefined) { // all gods are present
     return false;
   }
-  if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 && currentRound.gunned!==-1) {
+  if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 
+      && currentRound.gunned!==-1 && currentRound.silenced!==-1) {
     console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
-    gunned: ${currentRound.gunned}, injected: ${currentRound.injected}`);
+    gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}`);
     return true;
   } else {
     return false;
@@ -164,6 +169,10 @@ function calculateRoundResult(round, io) {
   }
   updateExistingPlayers(io);
   return deadPlayers.sort();
+}
+
+function getSilencedPlayer(round) {
+  return roundAction[round-1].silenced.toString();
 }
 
 function updateExistingPlayers(io) {
@@ -215,5 +224,6 @@ module.exports = {
   populateDeadPlayers,
   updateExistingPlayers,
   printAlivePlayers,
-  sortAlivePlayers
+  sortAlivePlayers,
+  getSilencedPlayer
 };

@@ -13,6 +13,7 @@ const {
     populateDeadPlayers,
     updateExistingPlayers,
     sortAlivePlayers,
+    getSilencedPlayer
 } = require('./utils/players');
 
 const {
@@ -29,7 +30,7 @@ const io = socketio(server);
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-const playerLength = 6;
+const playerLength = 7;
 const isUsingSocketRoom = false;
 var round = 0;
 var voteblePlayers = [];
@@ -121,6 +122,11 @@ io.on('connection', socket => {
         }
     });
 
+    socket.on('restartGame', () => {
+        resetGlobalVariablesForNewGame();
+        io.emit('restartGameForAll');
+    });
+
     socket.on('killPlayer', (playerId) => {
         playerAction(playerId, 'kill', round);
         io.emit('killComplete', {
@@ -157,8 +163,10 @@ io.on('connection', socket => {
         }
     });
 
-    socket.on('gunPlayer', (playerId, isVotingRound) => {
-        console.log(`gun playerId: ${typeof playerId}`);
+    socket.on('gunPlayer', ({playerId, isVotingRound}) => {
+        console.log(`gun playerId type: ${typeof playerId}`);
+        console.log(`gun playerId: ${playerId}`);
+        console.log(`isVotingRound type : ${typeof playerId}`);
         if (playerId==='0') {
             isGunSmithFired = false;
             noPlayerAction('gun',round);
@@ -171,6 +179,23 @@ io.on('connection', socket => {
             }
         }
         io.emit('gunComplete', {
+            playerId: playerId,
+            alivePlayers: getAlivePlayers(),
+            round: round
+        });
+        if (isRoundOver(round)) {
+            roundOverAction(round, io);
+        }
+    });
+
+    socket.on('silencePlayer', (playerId) => {
+        console.log(`silenced playerId type: ${typeof playerId}`);
+        if (playerId==='0') {
+            noPlayerAction('silence', round);
+        } else {
+            playerAction(playerId, 'silence', round);
+        }
+        io.emit('silenceComplete', {
             playerId: playerId,
             alivePlayers: getAlivePlayers(),
             round: round
@@ -298,11 +323,13 @@ function proceedToNextNight() {
     var policeCount = 0;
     var doctorCount = 0;
     var gunSmithCount = 0;
+    var silencerCount = 0;
     var i;
     for (i=0; i<getAlivePlayers().length; i++) {
         const currentPlayer = getAlivePlayers()[i];
         var role = updateSocketRoomRole(io, currentPlayer);
         if (role==='killer') killerCount++;
+        else if (role==='silencer') silencerCount++;
         else if (role==='police') policeCount++;
         else if (role==='doctor') doctorCount++;
         else if (role==='gunSmith') gunSmithCount++;
@@ -319,6 +346,11 @@ function proceedToNextNight() {
 
     // console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
     io.emit('message', `Night ${round} Starting!`);
+    if (silencerCount > 0) {
+        io.emit('silencerAction', {alivePlayers: getAlivePlayers(), round: round});
+    } else {
+        noPlayerAction('silence',round);
+    }
     if (killerCount > 0) {
         if (isUsingSocketRoom) {
             io.to('killerGroup').emit('killerAction', {alivePlayers: getAlivePlayers(), round: round});
@@ -364,7 +396,15 @@ function roundOverAction(round, io) {
     console.log('Round Over');
     const deadPlayers = calculateRoundResult(round, io);
     const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
+    const silencedPlayer = getSilencedPlayer(round);
+    var silencedPlayerMessage = '';
+    if (silencedPlayer==='0') {
+        silencedPlayerMessage = 'No player has been silenced!';
+    } else {
+        silencedPlayerMessage = `Player: ${silencedPlayer} has been silenced!`;
+    }
     io.emit('message', deadPlayerMessage);
+    io.emit('message', silencedPlayerMessage);
     io.emit('roomUsers', getAlivePlayers());
     io.emit('updateCurrentCard', getAlivePlayers());
     if (isBadGuysWon(isPureVillagerExists)) {
@@ -380,10 +420,10 @@ function roundOverAction(round, io) {
         // voteblePlayers.forEach(e => {
         //     console.log(e.playerId);
         // });
-        if (!isGunSmithFired) {
-            console.log('gun smith fire option');
-            io.emit('gunSmithVotingRoundAction', getAlivePlayers());
-        }
+        // if (!isGunSmithFired) {
+        //     console.log('gun smith fire option');
+        //     io.emit('gunSmithVotingRoundAction', getAlivePlayers());
+        // }
         console.log('no gun smith fire option');
         io.emit('votePlayer', ({
             voteThisPlayer: voteblePlayers[0], 
