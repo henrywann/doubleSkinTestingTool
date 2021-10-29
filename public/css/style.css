@@ -50,6 +50,15 @@ a {
 	font-size: 17px;
 }
 
+.actionBtn {
+	cursor: pointer;
+	padding: 5px 15px;
+	background: var(--light-color);
+	color: var(--dark-color-a);
+	border: 3;
+	font-size: 17px;
+}
+
 /* Chat Page */
 
 .chat-container {

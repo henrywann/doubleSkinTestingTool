@@ -150,7 +150,7 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
         alivePlayers.forEach(e => {
             if (e.playerId === playerId-1) {
                 const currentCard = e.card1 === '' ? e.card2: e.card1;
-                const currentId = currentCard ==='killer'? 'Bad': 'Good';
+                const currentId = currentCard==='killer' || currentCard ==='silencer'? 'Bad': 'Good';
                 const message = `Player ${playerId}'s Current Identity is ${currentId}`;
                 outputMessage(message);
                 alert(message);
@@ -284,9 +284,9 @@ function outputGunSmithSelection(alivePlayers, round, isVotingRound) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Gun Smith Please Select a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1}, ${isVotingRound})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1}, ${isVotingRound})"> ${e.playerId+1} </button>`);
     });
-    div.insertAdjacentHTML('beforeEnd', `<button id="noGun-${round}" onclick="gunPlayer(0,false)">No Gun </button>`);
+    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noGun-${round}" onclick="gunPlayer(0,false)">No Gun </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
@@ -295,7 +295,7 @@ function outputDoctorSelection(alivePlayers, round) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Doctor Please Select a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="doctor${e.playerId+1}-${round}" onclick="injectPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="doctor${e.playerId+1}-${round}" onclick="injectPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
 }
@@ -305,7 +305,7 @@ function outputPoliceSelection(alivePlayers, round) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Police Please Select a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="police${e.playerId+1}-${round}" onclick="checkPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="police${e.playerId+1}-${round}" onclick="checkPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
 }
@@ -315,7 +315,7 @@ function outputKillerSelection(alivePlayers, round) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Killer Please kill a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="kill${e.playerId+1}-${round}" onclick="killPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="kill${e.playerId+1}-${round}" onclick="killPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
 }
@@ -325,9 +325,9 @@ function outputSilencerSelection(alivePlayers, round) {
     div.classList.add('message');
     div.innerHTML = '<p class="text">Silencer Please silence a player<p>';
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button id="silence${e.playerId+1}-${round}" onclick="silencePlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="silence${e.playerId+1}-${round}" onclick="silencePlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
-    div.insertAdjacentHTML('beforeEnd', `<button id="noSilence-${round}" onclick="silencePlayer(0)">No Silence </button>`);
+    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noSilence-${round}" onclick="silencePlayer(0)">No Silence </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
