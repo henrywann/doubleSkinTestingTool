@@ -2,6 +2,8 @@ const {
     getAlivePlayers
 } = require('./players');
 
+const isSideKillFlag = false;
+
 function updateSocketRoomRole(io, currentPlayer) {
     // var socket = io.of("/").connected[currentPlayer.id];
     var socket = io.of('/').sockets.get(currentPlayer.id);
@@ -111,7 +113,12 @@ function isBadGuysWon(isPureVillagerExists) {
             godExists = true;
         }
     });
-    return (!pureVillagerExists && isPureVillagerExists) || !godExists;
+    if (isSideKillFlag) {
+        return (!pureVillagerExists && isPureVillagerExists) || !godExists;
+    } else {
+        return !godExists && !pureVillagerExists;
+    }
+    
 }
 
 function isGoodGuysWon() {
