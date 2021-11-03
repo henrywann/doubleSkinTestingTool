@@ -159,7 +159,7 @@ function calculateRoundResult(round, io) {
   if (currentRound.injected!==0 && currentRound.injected!==currentRound.killed) {
     console.log('cured player is not killed');
     alivePlayers.forEach(e => {
-      if (e.playerId===currentRound.injected) {
+      if ((e.playerId+1).toString()===currentRound.injected) {
         e.poison++;
         if (e.poison===2) {
           populateDeadPlayers(currentRound.injected, deadPlayers);
@@ -176,15 +176,15 @@ function getSilencedPlayer(round) {
 }
 
 function updateExistingPlayers(io) {
-  alivePlayers.forEach(e => {
-    if (e.card1==='' && e.card2==='') {
-      const socket = io.of('/').sockets.get(e.id);
-      socket.leave('policeGroup');
-      socket.leave('doctor');
-      socket.leave('killerGroup');
-      socket.leave('gunSmith');
-    }
-  });
+  // alivePlayers.forEach(e => {
+  //   if (e.card1==='' && e.card2==='') {
+  //     const socket = io.of('/').sockets.get(e.id);
+  //     socket.leave('policeGroup');
+  //     socket.leave('doctor');
+  //     socket.leave('killerGroup');
+  //     socket.leave('gunSmith');
+  //   }
+  // });
   var filtered = alivePlayers.filter(function(value, index, arr){ 
     return value.card2!=='';
   });
