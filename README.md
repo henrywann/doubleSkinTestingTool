@@ -11,5 +11,5 @@ Technical improvements:
 - Introduce video/audio communicatio natively in the app.
 - Rewrite with any popular framework (React, Angular, Vue.js...)
 - Allow multiple game room feature. 
-- Save in game data in DB. 
+- Save in game data in DB/Cache (Redis). 
 - Introduce session feature (player should be able to refresh the page and come back to the same stage of the game).
