@@ -40,14 +40,12 @@ socket.on('roomUsers', users => {
 socket.on('playerChatmessage', ({message, playername, playerId}) => {
     console.log(`Incoming message: ${message} ${playername} ${playerId}`);
     outputPlayerChatMessage(message, playername, playerId);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 // Displays game messages
 socket.on('message', message => {
     console.log(`Incoming message: ${message}`);
     outputMessage(message);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
 socket.on('silencerAction', ({alivePlayers, round}) => {
@@ -495,6 +493,7 @@ function outputPlayerChatMessage(message, playername, playerId) {
         ${message}
     </p>`;
     document.querySelector('.chat-messages').appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 function outputMessage(message) {
@@ -505,6 +504,7 @@ function outputMessage(message) {
         ${message}
     </p>`;
     document.querySelector('.chat-messages').appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // Add users to DOM
