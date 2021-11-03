@@ -162,6 +162,10 @@ a {
 	color: #777;
 }
 
+.chat-messages .message .text {
+	color: #fff;
+}
+
 .chat-messages .admin-message {
 	padding: 10px;
 	margin-bottom: 15px;

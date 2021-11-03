@@ -20,7 +20,8 @@ const {
     updateSocketRoomRole,
     isBadGuysWon,
     isGoodGuysWon,
-    getVotePlayers
+    getVotePlayers,
+    getRoleCount
 } = require('./utils/serverHelper');
 
 const app = express();
@@ -127,6 +128,19 @@ io.on('connection', socket => {
         io.emit('restartGameForAll');
     });
 
+    socket.on('verifyKillPlayer', (playerId) => {
+        io.emit('verifyKill', {
+            playerId: playerId, 
+            alivePlayers: getAlivePlayers(),
+            round: round
+        });
+    });
+
+    socket.on('chooseKillAgain', (playerId) => {
+        var killerCount = getRoleCount('killer');
+        io.emit('killerAction', {alivePlayers: getAlivePlayers(), round: round, killerCount: killerCount});
+    });
+
     socket.on('killPlayer', (playerId) => {
         playerAction(playerId, 'kill', round);
         io.emit('killComplete', {
@@ -137,6 +151,19 @@ io.on('connection', socket => {
         if (isRoundOver(round)) {
             roundOverAction(round, io);
         }
+    });
+
+    socket.on('verifyCheckPlayer', (playerId) => {
+        io.emit('verifyCheck', {
+            playerId: playerId, 
+            alivePlayers: getAlivePlayers(),
+            round: round
+        });
+    });
+
+    socket.on('chooseCheckAgain', (playerId) => {
+        var policeCount = getRoleCount('police');
+        io.emit('policeAction', {alivePlayers: getAlivePlayers(), round: round, policeCount: policeCount});
     });
 
     socket.on('checkPlayer', (playerId) => {
@@ -355,7 +382,7 @@ function proceedToNextNight() {
         if (isUsingSocketRoom) {
             io.to('killerGroup').emit('killerAction', {alivePlayers: getAlivePlayers(), round: round});
         } else {
-            io.emit('killerAction', {alivePlayers: getAlivePlayers(), round: round});
+            io.emit('killerAction', {alivePlayers: getAlivePlayers(), round: round, killerCount: killerCount});
         }
     } else {
         noPlayerAction('kill',round);
@@ -364,7 +391,7 @@ function proceedToNextNight() {
         if (isUsingSocketRoom) {
             io.to('policeGroup').emit('policeAction', {alivePlayers: getAlivePlayers(), round: round});
         } else {
-            io.emit('policeAction', {alivePlayers: getAlivePlayers(), round: round});
+            io.emit('policeAction', {alivePlayers: getAlivePlayers(), round: round, policeCount: policeCount});
         }
     } else {
         noPlayerAction('check',round);

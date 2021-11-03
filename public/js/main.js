@@ -58,18 +58,20 @@ socket.on('silencerAction', ({alivePlayers, round}) => {
     }
 });
 
-socket.on('killerAction', ({alivePlayers, round}) => {
+socket.on('killerAction', ({alivePlayers, round, killerCount}) => {
     if (sessionStorage.getItem("currentCard")==="killer") {
         sessionStorage.setItem("state", "killerAction");
-        outputKillerSelection(alivePlayers, round);
+        sessionStorage.setItem("isInitiatingKill", false);
+        outputKillerSelection(alivePlayers, round, killerCount);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 });
 
-socket.on('policeAction', ({alivePlayers, round}) => {
+socket.on('policeAction', ({alivePlayers, round, policeCount}) => {
     if (sessionStorage.getItem("currentCard")==="police") {
         sessionStorage.setItem("state", "policeAction");
-        outputPoliceSelection(alivePlayers, round);
+        sessionStorage.setItem("isInitiatingCheck", false);
+        outputPoliceSelection(alivePlayers, round, policeCount);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 });
@@ -86,6 +88,22 @@ socket.on('gunSmithAction', ({alivePlayers, round, isVotingRound}) => {
     if (sessionStorage.getItem("currentCard")==="gunSmith") {
         sessionStorage.setItem("state", "gunSmithAction");
         outputGunSmithSelection(alivePlayers, round, isVotingRound);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+});
+
+socket.on('verifyKill', ({playerId, alivePlayers, round}) => {
+    if (sessionStorage.getItem("currentCard")==="killer" && sessionStorage.getItem("isInitiatingKill")==='false') {
+        sessionStorage.setItem("state", "killerVerify");
+        outputVerifyKill(playerId, alivePlayers, round);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+});
+
+socket.on('verifyCheck', ({playerId, alivePlayers, round}) => {
+    if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
+        sessionStorage.setItem("state", "policeVerify");
+        outputVerifyCheck(playerId, alivePlayers, round);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 });
@@ -279,6 +297,48 @@ function voteNo(player, round, isFirstRoundVoting) {
     socket.emit('voteNo', voteIndex);
 }
 
+function outputVerifyKill(playerId, alivePlayers, round) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = `<p class="text">Do you want to kill player ${playerId}?<p>`;
+    div.insertAdjacentHTML('beforeEnd',`<button id="killYes${playerId}-${round}" 
+                                        onclick="killYes(${playerId},${round})"> YES </button>
+                                        <button id="killNo${playerId}-${round}" 
+                                        onclick="killNo(${playerId})"> NO </button>`);
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
+function killYes(playerId, round) {
+    document.getElementById(`killYes${playerId}-${round}`).disabled = true;
+    document.getElementById(`killNo${playerId}-${round}`).disabled = true;
+    killPlayer(playerId);
+}
+
+function killNo(playerId) {
+    socket.emit('chooseKillAgain', playerId.toString());
+}
+
+function outputVerifyCheck(playerId, alivePlayers, round) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = `<p class="text">Do you want to check player ${playerId}?<p>`;
+    div.insertAdjacentHTML('beforeEnd',`<button id="checkYes${playerId}-${round}" 
+                                        onclick="checkYes(${playerId},${round})"> YES </button>
+                                        <button id="checkNo${playerId}-${round}" 
+                                        onclick="checkNo(${playerId})"> NO </button>`);
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
+function checkYes(playerId, round) {
+    document.getElementById(`checkYes${playerId}-${round}`).disabled = true;
+    document.getElementById(`checkNo${playerId}-${round}`).disabled = true;
+    checkPlayer(playerId);
+}
+
+function checkNo(playerId) {
+    socket.emit('chooseCheckAgain', playerId.toString());
+}
+
 function outputGunSmithSelection(alivePlayers, round, isVotingRound) {
     const div = document.createElement('div');
     div.classList.add('message');
@@ -300,24 +360,49 @@ function outputDoctorSelection(alivePlayers, round) {
     document.querySelector('.chat-messages').appendChild(div);
 }
 
-function outputPoliceSelection(alivePlayers, round) {
+function outputPoliceSelection(alivePlayers, round, policeCount) {
+    var teamMate = getTeamMate(alivePlayers, policeCount, 'police');
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = '<p class="text">Police Please Select a player<p>';
+    if (teamMate !== -1) {
+        div.innerHTML = `<p class="text">Player ${teamMate} is your teammate. Police Please Select a player<p>`;
+    } else {
+        div.innerHTML = '<p class="text">Police Please Select a player<p>';
+    }
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="police${e.playerId+1}-${round}" onclick="checkPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="police${e.playerId+1}-${round}" onclick="checkPlayerRouter(${e.playerId+1}, ${policeCount})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
 }
 
-function outputKillerSelection(alivePlayers, round) {
+function outputKillerSelection(alivePlayers, round, killerCount) {
+    var teamMate = getTeamMate(alivePlayers, killerCount, 'killer');
+    
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = '<p class="text">Killer Please kill a player<p>';
+    if (teamMate !== -1) {
+        div.innerHTML = `<p class="text">Player ${teamMate} is your teammate. Killer Please kill a player<p>`;
+    } else {
+        div.innerHTML = '<p class="text">Killer Please kill a player<p>';
+    }
     alivePlayers.forEach(e =>{
-        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="kill${e.playerId+1}-${round}" onclick="killPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="kill${e.playerId+1}-${round}" onclick="killerPlayerRouter(${e.playerId+1}, ${killerCount})"> ${e.playerId+1} </button>`);
     });
     document.querySelector('.chat-messages').appendChild(div);
+}
+
+function getTeamMate(alivePlayers, count, card) {
+    var teamMate = -1;
+    if (count > 1) {
+        alivePlayers.forEach(e => {
+            if ((e.playerId+1).toString() !== sessionStorage.getItem("playerId")) {
+                if (e.card1===card || (e.card1==='' && e.card2===card)) {
+                    teamMate = e.playerId+1;
+                }
+            }
+        });
+    }
+    return teamMate;
 }
 
 function outputSilencerSelection(alivePlayers, round) {
@@ -335,8 +420,39 @@ function injectPlayer(injectedPlayer) {
     socket.emit('injectPlayer', injectedPlayer.toString());
 }
 
+function checkPlayerRouter(playerId, policeCount) {
+    if (policeCount > 1) {
+        verifyCheckPlayer(playerId);
+    } else {
+        checkPlayer(playerId);
+    }
+}
+
+function verifyCheckPlayer(playerId) {
+    sessionStorage.setItem("isInitiatingCheck", true);
+    outputMessage('Waiting for teammate to confirm...');
+    socket.emit('verifyCheckPlayer', playerId.toString());
+}
+
 function checkPlayer(checkedPlayerId) {
     socket.emit('checkPlayer', checkedPlayerId.toString());
+}
+
+
+
+function killerPlayerRouter(playerId, killerCount) {
+    console.log(`killerCount: ${typeof killerCount} ${killerCount}`);
+    if (killerCount > 1) {
+        verifyKillPlayer(playerId);
+    } else {
+        killPlayer(playerId);
+    }
+}
+
+function verifyKillPlayer(playerId) {
+    sessionStorage.setItem("isInitiatingKill", true);
+    outputMessage('Waiting for teammate to confirm...');
+    socket.emit('verifyKillPlayer', playerId.toString());
 }
 
 function killPlayer(playerId) {

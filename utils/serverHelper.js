@@ -131,9 +131,23 @@ function isGoodGuysWon() {
     return result;
 }
 
+function getRoleCount(card) {
+    var count = 0;
+    for (i=0; i<getAlivePlayers().length; i++) {
+        const currentPlayer = getAlivePlayers()[i];
+        if (currentPlayer.card1===card) {
+            count++;
+        } else if (currentPlayer.card1==='' && currentPlayer.card2===card) {
+            count++;
+        }
+    }
+    return count;
+}
+
 module.exports = {
     updateSocketRoomRole,
     isBadGuysWon,
     isGoodGuysWon,
-    getVotePlayers
+    getVotePlayers,
+    getRoleCount
 }
