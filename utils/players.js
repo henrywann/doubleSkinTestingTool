@@ -1,11 +1,8 @@
 const e = require("express");
-const isSevenPlayer = true;
 // players[] keeps track of how many players joined the game. alivePlayers is how many players are ready
 var players = [];
 
-var cards = isSevenPlayer?['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
-'villager', 'villager', 'villager', 'villager', 'villager', 'villager']:
-['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 
+var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
 'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
 
 // var cards = ['killer', 'villager', 'villager', 'police', 'villager', 'gunSmith', 'villager', 
@@ -25,15 +22,13 @@ function sortAlivePlayers() {
 // Join player to game and show cards
 function playerJoin(id, username, isNewGame) {
   if (isNewGame) {
-    cards = isSevenPlayer?['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
-'villager', 'villager', 'villager', 'villager', 'villager', 'villager']:
-['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 
+    cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
 'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
     alivePlayers = [];
     roundAction = [];
     players = [];
   }
-  if (players.length >= isSevenPlayer?7:6) {
+  if (players.length >= 7) {
     console.log('more than 7 players joined')
     return null;
   }
