@@ -2,11 +2,7 @@ const e = require("express");
 // players[] keeps track of how many players joined the game. alivePlayers is how many players are ready
 var players = [];
 
-var cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
-'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
-
-// var cards = ['killer', 'villager', 'villager', 'police', 'villager', 'gunSmith', 'villager', 
-// 'doctor', 'killer', 'villager', 'police', 'villager'];
+var cards = [];
 
 var alivePlayers = [];
 var roundAction = [];
@@ -20,16 +16,22 @@ function sortAlivePlayers() {
 }
 
 // Join player to game and show cards
-function playerJoin(id, username, isNewGame) {
+function playerJoin(id, username, isNewGame, playerLength) {
   if (isNewGame) {
-    cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
-'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
+    if (playerLength==='7') {
+      cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
+      'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
+    } else {
+      cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 'villager', 
+      'villager', 'villager', 'villager', 'villager'];
+    }
+    
     alivePlayers = [];
     roundAction = [];
     players = [];
   }
-  if (players.length >= 7) {
-    console.log('more than 7 players joined')
+  if (players.length >= playerLength) {
+    console.log(`more than ${playerLength} players joined`);
     return null;
   }
   return assignPlayer(id, username);
