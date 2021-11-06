@@ -2,6 +2,7 @@ const path = require('path');
 const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
+const isSevenPlayer = true;
 const {
     playerJoin,
     playerReady,
@@ -31,7 +32,7 @@ const io = socketio(server);
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-const playerLength = 7;
+const playerLength = isSevenPlayer?7:6;
 const isUsingSocketRoom = false;
 var round = 0;
 var voteblePlayers = [];
