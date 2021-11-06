@@ -32,7 +32,7 @@ const io = socketio(server);
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-const playerLength = isSevenPlayer?7:6;
+const playerLength = 7;
 const isUsingSocketRoom = false;
 var round = 0;
 var voteblePlayers = [];
