@@ -32,8 +32,9 @@ const io = socketio(server);
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-const playerLength = 7;
 const isUsingSocketRoom = false;
+
+var playerLength = 0;
 var round = 0;
 var voteblePlayers = [];
 var allPlayers = [];
@@ -47,6 +48,7 @@ var isNewGame = true;
 var gunnedPlayerDuringVoting = -1;
 
 function resetGlobalVariablesForNewGame() {
+    playerLength = 0;
     round = 0;
     voteblePlayers = [];
     allPlayers = [];
@@ -63,9 +65,12 @@ function resetGlobalVariablesForNewGame() {
 // Run with client connects
 io.on('connection', socket => {
     var playerList = [];
-    socket.on('joinGame', ({username, socketId, state, voteIndex}) => {
+    socket.on('joinGame', ({username, numOfPlayers, socketId, state, voteIndex}) => {
         if (socketId==null) {
-            const player = playerJoin(socket.id, username, isNewGame);
+            if (playerLength === 0) {
+                playerLength = numOfPlayers;
+            }
+            const player = playerJoin(socket.id, username, isNewGame, playerLength);
             isNewGame = false;
             if (player == null) {
                 socket.emit('message', 'Speculator mode. Please wait for game to finish.');
@@ -116,9 +121,10 @@ io.on('connection', socket => {
         if (getAlivePlayers().length==playerLength) {
             sortAlivePlayers();
             getAlivePlayers().forEach(e => {
-              if (e.isPureVillager) {
-                isPureVillagerExists = true;
-              }
+                console.log(`Player ${e.playerId+1} identity: ${e.card1}, ${e.card2}`);
+                if (e.isPureVillager) {
+                    isPureVillagerExists = true;
+                }
             });
             proceedToNextNight();
         }
@@ -423,7 +429,12 @@ function proceedToNextNight() {
 function roundOverAction(round, io) {
     console.log('Round Over');
     const deadPlayers = calculateRoundResult(round, io);
-    const deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
+    var deadPlayerMessage = '';
+    if (deadPlayers.length === 0) {
+        deadPlayerMessage = 'No player has been killed!';
+    } else {
+        deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
+    }
     const silencedPlayer = getSilencedPlayer(round);
     var silencedPlayerMessage = '';
     if (silencedPlayer==='0') {
@@ -444,7 +455,7 @@ function roundOverAction(round, io) {
     } else {
         // voteblePlayers consists elements of playerId and alreadyVoted flag
         voteblePlayers = getVotePlayers(deadPlayers);
-        console.log(`Players can be voted (in order): `);
+        // console.log(`Players can be voted (in order): `);
         // voteblePlayers.forEach(e => {
         //     console.log(e.playerId);
         // });
@@ -452,7 +463,7 @@ function roundOverAction(round, io) {
         //     console.log('gun smith fire option');
         //     io.emit('gunSmithVotingRoundAction', getAlivePlayers());
         // }
-        console.log('no gun smith fire option');
+        // console.log('no gun smith fire option');
         io.emit('votePlayer', ({
             voteThisPlayer: voteblePlayers[0], 
             voteIndex: 0, 
