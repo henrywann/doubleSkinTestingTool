@@ -2,7 +2,7 @@ const {
     getAlivePlayers
 } = require('./players');
 
-const isSideKillFlag = false;
+const isSideKillFlag = true;
 
 function updateSocketRoomRole(io, currentPlayer) {
     // var socket = io.of("/").connected[currentPlayer.id];
