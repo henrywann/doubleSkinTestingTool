@@ -33,8 +33,11 @@ socket.on('showIdentity', player => {
 });
 
 socket.on('roomUsers', users => {
-    console.log('roomUsers');
     outputUsers(users);
+});
+
+socket.on('playerReadyCheckmark', (allPlayers) => {
+    outputUsers(allPlayers);
 });
 
 // Displays player typed messages
@@ -138,7 +141,7 @@ socket.on('killComplete', ({playerId, alivePlayers, round}) => {
         alivePlayers.forEach(e => {
             document.getElementById(`kill${e.playerId+1}-${round}`).disabled = true;
         });
-        const message = `Killed Player ${playerId}!`;
+        const message = `玩家${playerId}被杀死!`;
         outputMessage(message);
         alert(message);
     }
@@ -153,7 +156,7 @@ socket.on('silenceComplete', ({playerId, alivePlayers, round}) => {
         var noSilenceBtn = document.getElementById(`noSilence-${round}`);
         noSilenceBtn.disabled = true;
         if (playerId!=='0') {
-            alert(`Silenced Player ${playerId}!`);
+            alert(`玩家${playerId}被禁言!`);
         }
     }
 });
@@ -167,8 +170,8 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
         alivePlayers.forEach(e => {
             if (e.playerId === playerId-1) {
                 const currentCard = e.card1 === '' ? e.card2: e.card1;
-                const currentId = currentCard==='killer' || currentCard ==='silencer'? 'Bad': 'Good';
-                const message = `Player ${playerId}'s Current Identity is ${currentId}`;
+                const currentId = currentCard==='killer' || currentCard ==='silencer'? '坏人': '好人';
+                const message = `玩家${playerId}的目前身份是${currentId}`;
                 outputMessage(message);
                 alert(message);
             }
@@ -237,9 +240,9 @@ function outputIdentity(player) {
         console.log(admin_div);
         admin_div.innerHTML =`<p class="meta">Admin</p>
         <p class="text">
-            Hello [Player ${player.playerId+1}] ${player.username}, here're your identities! \n
-            card1: ${player.card1}
-            card2: ${player.card2}
+            Hello [玩家${player.playerId+1}] ${player.username}, 你的身份牌是： \n
+            身份1: ${player.card1Chinese}
+            身份2: ${player.card2Chinese}
         </p>`;
         sessionStorage.setItem("playerId", player.playerId+1);
         sessionStorage.setItem("socketId", player.id);
@@ -248,9 +251,9 @@ function outputIdentity(player) {
         div.classList.add('admin-message');
         div.innerHTML =`<p class="meta">Admin</p>
         <p class="text">
-            Hello [Player ${player.playerId+1}] ${player.username}, here're your identities! \n
-            card1: ${player.card1}
-            card2: ${player.card2}
+            Hello [玩家${player.playerId+1}] ${player.username}, 你的身份牌是： \n
+            身份1: ${player.card1Chinese}
+            身份2: ${player.card2Chinese}
         </p>`;
         document.querySelector('.chat-messages').appendChild(div);
         sessionStorage.setItem("playerId", player.playerId+1);
@@ -261,11 +264,11 @@ function outputIdentity(player) {
 function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = `<p class="text">Do you want to vote player ${playerTobeVoted.playerId}<p>`;
+    div.innerHTML = `<p class="text">是否投玩家${playerTobeVoted.playerId}？<p>`;
     div.insertAdjacentHTML('beforeEnd',`<button id="voteYes${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" 
-                                        onclick="voteYes(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> YES </button>
+                                        onclick="voteYes(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;是&nbsp; </button>
                                         <button id="voteNo${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" 
-                                        onclick="voteNo(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> NO </button>`);
+                                        onclick="voteNo(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;否&nbsp; </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
@@ -299,11 +302,11 @@ function voteNo(player, round, isFirstRoundVoting) {
 function outputVerifyKill(playerId, alivePlayers, round) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = `<p class="text">Do you want to kill player ${playerId}?<p>`;
+    div.innerHTML = `<p class="text">确认要杀玩家${playerId}吗?<p>`;
     div.insertAdjacentHTML('beforeEnd',`<button id="killYes${playerId}-${round}" 
-                                        onclick="killYes(${playerId},${round})"> YES </button>
+                                        onclick="killYes(${playerId},${round})"> &nbsp;是&nbsp; </button>
                                         <button id="killNo${playerId}-${round}" 
-                                        onclick="killNo(${playerId})"> NO </button>`);
+                                        onclick="killNo(${playerId})"> &nbsp;否&nbsp; </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
@@ -320,11 +323,11 @@ function killNo(playerId) {
 function outputVerifyCheck(playerId, alivePlayers, round) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = `<p class="text">Do you want to check player ${playerId}?<p>`;
+    div.innerHTML = `<p class="text">确认要验玩家${playerId}吗?<p>`;
     div.insertAdjacentHTML('beforeEnd',`<button id="checkYes${playerId}-${round}" 
-                                        onclick="checkYes(${playerId},${round})"> YES </button>
+                                        onclick="checkYes(${playerId},${round})"> &nbsp;是&nbsp;</button>
                                         <button id="checkNo${playerId}-${round}" 
-                                        onclick="checkNo(${playerId})"> NO </button>`);
+                                        onclick="checkNo(${playerId})"> &nbsp;否&nbsp; </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
@@ -341,18 +344,18 @@ function checkNo(playerId) {
 function outputGunSmithSelection(alivePlayers, round, isVotingRound) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = '<p class="text">Gun Smith Please Select a player<p>';
+    div.innerHTML = '<p class="text">Gun Smith 请开枪<p>';
     alivePlayers.forEach(e =>{
         div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1}, ${isVotingRound})"> ${e.playerId+1} </button>`);
     });
-    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noGun-${round}" onclick="gunPlayer(0,false)">No Gun </button>`);
+    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noGun-${round}" onclick="gunPlayer(0,false)">不开枪 </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
 function outputDoctorSelection(alivePlayers, round) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = '<p class="text">Doctor Please Select a player<p>';
+    div.innerHTML = '<p class="text">医生请扎人<p>';
     alivePlayers.forEach(e =>{
         div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="doctor${e.playerId+1}-${round}" onclick="injectPlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
@@ -364,9 +367,9 @@ function outputPoliceSelection(alivePlayers, round, policeCount) {
     const div = document.createElement('div');
     div.classList.add('message');
     if (teamMate !== -1) {
-        div.innerHTML = `<p class="text">Player ${teamMate} is your teammate. Police Please Select a player<p>`;
+        div.innerHTML = `<p class="text">玩家 ${teamMate} 是你的队友. 警察请验人<p>`;
     } else {
-        div.innerHTML = '<p class="text">Police Please Select a player<p>';
+        div.innerHTML = '<p class="text">警察请验人<p>';
     }
     alivePlayers.forEach(e =>{
         div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="police${e.playerId+1}-${round}" onclick="checkPlayerRouter(${e.playerId+1}, ${policeCount})"> ${e.playerId+1} </button>`);
@@ -380,9 +383,9 @@ function outputKillerSelection(alivePlayers, round, killerCount) {
     const div = document.createElement('div');
     div.classList.add('message');
     if (teamMate !== -1) {
-        div.innerHTML = `<p class="text">Player ${teamMate} is your teammate. Killer Please kill a player<p>`;
+        div.innerHTML = `<p class="text">玩家 ${teamMate} 是你的队友. 杀手请杀人<p>`;
     } else {
-        div.innerHTML = '<p class="text">Killer Please kill a player<p>';
+        div.innerHTML = '<p class="text">杀手请杀人<p>';
     }
     alivePlayers.forEach(e =>{
         div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="kill${e.playerId+1}-${round}" onclick="killerPlayerRouter(${e.playerId+1}, ${killerCount})"> ${e.playerId+1} </button>`);
@@ -429,7 +432,7 @@ function checkPlayerRouter(playerId, policeCount) {
 
 function verifyCheckPlayer(playerId) {
     sessionStorage.setItem("isInitiatingCheck", true);
-    outputMessage('Waiting for teammate to confirm...');
+    outputMessage('等待队友确认...');
     socket.emit('verifyCheckPlayer', playerId.toString());
 }
 
@@ -450,7 +453,7 @@ function killerPlayerRouter(playerId, killerCount) {
 
 function verifyKillPlayer(playerId) {
     sessionStorage.setItem("isInitiatingKill", true);
-    outputMessage('Waiting for teammate to confirm...');
+    outputMessage('等待队友确认...');
     socket.emit('verifyKillPlayer', playerId.toString());
 }
 
@@ -471,6 +474,9 @@ function clickSwitchOrder() {
     var temp = currentPlayer.card1;
     currentPlayer.card1 = currentPlayer.card2;
     currentPlayer.card2 = temp;
+    var tempChinese = currentPlayer.card1Chinese;
+    currentPlayer.card1Chinese = currentPlayer.card2Chinese;
+    currentPlayer.card2Chinese = tempChinese;
     outputIdentity(currentPlayer);
 }
 
@@ -514,7 +520,12 @@ function outputUsers(users) {
     users.forEach(user=>{
       const li = document.createElement('li');
       const numOfCards = user.card1===''?1:2;
-      li.innerText = `${user.username} Player: ${user.playerId+1} # of cards: ${numOfCards}`;
+      if (user.isReady) {
+        li.innerText = `${user.username} 编号: ${user.playerId+1} 剩余卡牌: ${numOfCards} ✅`;
+      } else {
+        li.innerText = `${user.username} 编号: ${user.playerId+1} 剩余卡牌: ${numOfCards}`;
+      }
+      
       userList.appendChild(li);
     });
 }
