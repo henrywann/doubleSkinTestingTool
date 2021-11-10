@@ -220,6 +220,13 @@ a {
 /* Join Page */
 .join-container {
 	max-width: 500px;
+	height: 400px;
+	margin: 80px auto;
+	color: #fff;
+}
+
+.game-rules-container {
+	max-width: 700px;
 	height: 100vh;
 	margin: 80px auto;
 	color: #fff;
@@ -240,7 +247,20 @@ a {
     border-bottom-right-radius: 5px;
 }
 
+.rules-main {
+	padding: 30px 40px;
+	background: var(--dark-color-b);
+	border-top-left-radius: 30px;
+    border-top-right-radius: 30px;
+	border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+}
+
 .join-main p {
+	margin-bottom: 20px;
+}
+
+.rules-main p {
 	margin-bottom: 20px;
 }
 

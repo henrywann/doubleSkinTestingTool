@@ -16,29 +16,64 @@
 	<body>
 		<div class="join-container">
 			<header class="join-header">
-				<h1><i class="fas fa-smile"></i> Welcome to Double Skin Werewolf</h1>
+				<h1><i class="fas fa-smile"></i> 欢迎来到双身份杀人</h1>
 			</header>
 			<main class="join-main">
 				<form action="chat.html">
 					<div class="form-control">
-						<label for="username">Username</label>
+						<label for="username">玩家名称</label>
 						<input
 							type="text"
 							name="username"
 							id="username"
-							placeholder="Enter username..."
+							placeholder="请输入玩家名称"
 							required
 						/>
 					</div>
 					<div class="form-control">
-						<label for="numOfPlayers">Number of Players</label>
+						<label for="numOfPlayers">请选择玩家数量</label>
 						<select name="numOfPlayers" id="numOfPlayers">
 							<option value=6>6</option>
 							<option value=7>7</option>
 						</select>
 					</div>
-					<button type="submit" class="btn">Join Game</button>
+					<button type="submit" class="btn">开始游戏！</button>
 				</form>
+			</main>
+		</div>
+		<div class="game-rules-container">
+			<main class="rules-main">
+				<h2>游戏规则</h2>
+				<p>
+					- 开局每位玩家会被随机分到两张牌，玩家可自由决定摆放顺序
+					<br>
+					- 拿到killer即为坏人阵营。7人局加入silencer。silencer跟神在一起为好人阵营。跟其他身份为坏人
+					<br>
+					- 每天晚上只能使用当前身份的能力。当前身份死亡不能再使用身份牌的能力。若两张牌都死掉则玩家出局。
+					<br>
+					- 每一轮天亮讨论从死者下一位玩家开始发言。投票时按发言顺序投票，可以弃票。若出现平票，则获得相同票数的玩家再发言一次，并进行第二次投票。若仍然平票则一起死亡。
+					<br>
+					- 前两名死的玩家有遗言。死者当天白天不能投票也不能被投票。
+					<br>
+					- 坏人胜利条件为杀掉纯平民或神（屠边）。好人胜利条件为杀掉全部坏人。
+				</p>
+				<h2>身份说明</h2>
+				<p>
+					- 6人局为两killer，两police，一个Gun Smith，一个Doctor，和6个villager，共12张牌。7人局加入
+					一个silencer和一个villager，共14张牌
+					<br>
+					- Killer黑天必须杀死一名玩家，可自杀。
+					<br>
+					- Police黑天必须验证一名玩家当前身份牌的好坏。
+					<br>
+					- Gun Smith 只有一发子弹可以在黑天时打死一名玩家目前身份牌。可选择不发动。
+					<br>
+					- Doctor黑天必须选择一名玩家扎针，可选自己。若该玩家同一晚上被killer杀死，则医治成功，白天不会死亡。若该玩家
+					没有被killer杀，则玩家当前身份牌累计一针毒针。累计两针毒针当前身份牌死亡。Doctor不可医救Gun Smith的枪杀。
+					<br>
+					- Silencer黑天可以选择一名玩家对其释放禁言，可选自己。该玩家第二天白天不能发言（包括遗言）。
+
+				</p>
 			</main>
 		</div>
 	</body>

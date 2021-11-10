@@ -118,6 +118,10 @@ io.on('connection', socket => {
 
     socket.on('playerReady', (currentPlayer) => {
         playerReady(socket.id, currentPlayer);
+        allPlayers.forEach(e => {
+            if (e.id===currentPlayer.id) e.isReady = true;
+        })
+        io.emit('playerReadyCheckmark', allPlayers);
         if (getAlivePlayers().length==playerLength) {
             sortAlivePlayers();
             getAlivePlayers().forEach(e => {
@@ -282,7 +286,8 @@ function voteComplete(voteIndex) {
     playersThatVoted++;
     if (playersThatVoted===voteblePlayers.length) {
         var curPlayer = voteblePlayers[parseInt(voteIndex)].playerId;
-        io.emit('message', `Player ${curPlayer} received votes from player(s): ${whoVotedWho}`);
+        if (whoVotedWho.length===0) io.emit('message', `没人投玩家${curPlayer}`);
+        else io.emit('message', `玩家：${whoVotedWho}投了玩家${curPlayer}`);
         playersThatVoted = 0;
         if (parseInt(voteIndex)===(playersWithMostVotes.length>1?playersWithMostVotes.length-1:voteblePlayers.length-1)) {
             // calculate vote result
@@ -324,12 +329,12 @@ function voteComplete(voteIndex) {
                 playersWithMostVotes.forEach(e => {
                     votedOutPlayers.push(e.playerId);
                 });
-                io.emit('message', `Player(s) voted out this round: ${votedOutPlayers}`);
+                io.emit('message', `玩家${votedOutPlayers}被投票出局！`);
                 if (isBadGuysWon(isPureVillagerExists)) {
-                    io.emit('message', 'Game Over! Bad Guys Won!');
+                    io.emit('message', '游戏结束！坏人胜利！');
                     resetGlobalVariablesForNewGame();
                 } else if (isGoodGuysWon()) {
-                    io.emit('message', 'Game Over! Good Guys Won!');
+                    io.emit('message', '游戏结束！好人胜利！');
                     resetGlobalVariablesForNewGame();
                 } else {
                     io.emit('roomUsers', getAlivePlayers());
@@ -379,7 +384,7 @@ function proceedToNextNight() {
     isFirstRoundVoting = true;
 
     // console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
-    io.emit('message', `Night ${round} Starting!`);
+    io.emit('message', `天黑请闭眼...第${round}夜!`);
     if (silencerCount > 0) {
         io.emit('silencerAction', {alivePlayers: getAlivePlayers(), round: round});
     } else {
@@ -431,26 +436,29 @@ function roundOverAction(round, io) {
     const deadPlayers = calculateRoundResult(round, io);
     var deadPlayerMessage = '';
     if (deadPlayers.length === 0) {
-        deadPlayerMessage = 'No player has been killed!';
+        deadPlayerMessage = '平安夜，没有人死!';
     } else {
-        deadPlayerMessage = `Player: ${deadPlayers} has been killed!`;
+        const i = Math.floor(Math.random() * 3);
+        if (i===0) deadPlayerMessage = `玩家${deadPlayers}惨死在血泊中！`;
+        else if (i===1) deadPlayerMessage = `玩家${deadPlayers}与世长辞！`;
+        else deadPlayerMessage = `玩家${deadPlayers}离我们远去了！`;
     }
     const silencedPlayer = getSilencedPlayer(round);
     var silencedPlayerMessage = '';
     if (silencedPlayer==='0') {
-        silencedPlayerMessage = 'No player has been silenced!';
+        silencedPlayerMessage = '没有人被禁言！';
     } else {
-        silencedPlayerMessage = `Player: ${silencedPlayer} has been silenced!`;
+        silencedPlayerMessage = `玩家${silencedPlayer}被禁言！`;
     }
     io.emit('message', deadPlayerMessage);
     io.emit('message', silencedPlayerMessage);
     io.emit('roomUsers', getAlivePlayers());
     io.emit('updateCurrentCard', getAlivePlayers());
     if (isBadGuysWon(isPureVillagerExists)) {
-        io.emit('message', 'Game Over! Bad Guys Won!');
+        io.emit('message', '游戏结束！坏人胜利！');
         resetGlobalVariablesForNewGame();
     } else if (isGoodGuysWon()) {
-        io.emit('message', 'Game Over! Good Guys Won!');
+        io.emit('message', '游戏结束！好人胜利！');
         resetGlobalVariablesForNewGame();
     } else {
         // voteblePlayers consists elements of playerId and alreadyVoted flag

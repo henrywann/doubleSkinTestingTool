@@ -1,9 +1,8 @@
 const e = require("express");
 // players[] keeps track of how many players joined the game. alivePlayers is how many players are ready
 var players = [];
-
 var cards = [];
-
+var cardsChinese = [];
 var alivePlayers = [];
 var roundAction = [];
 
@@ -21,9 +20,12 @@ function playerJoin(id, username, isNewGame, playerLength) {
     if (playerLength==='7') {
       cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
       'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
+      cardsChinese = ['杀手','杀手','警察','警察','医生','Gun Smith','禁言','平民','平民','平民','平民',
+      '平民','平民','平民'];
     } else {
       cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 'villager', 
       'villager', 'villager', 'villager', 'villager'];
+      cardsChinese = ['杀手','杀手','警察','警察','医生','Gun Smith','平民','平民','平民','平民','平民','平民'];
     }
     
     alivePlayers = [];
@@ -53,12 +55,16 @@ function assignPlayer(id, username) {
   const i = Math.floor(Math.random() * (cards.length-1));
   // const i =0;
   const card1 = cards[i];
+  const card1Chinese = cardsChinese[i];
   cards.splice(i, 1);
+  cardsChinese.splice(i, 1);
   // get second card
   const j = Math.floor(Math.random() * (cards.length-1));
   // const j =0;
   const card2 = cards[j];
+  const card2Chinese = cardsChinese[j];
   cards.splice(j, 1);
+  cardsChinese.splice(j, 1);
 
   const side = getPlayerSide(card1, card2);
   const poison = 0;
@@ -66,14 +72,17 @@ function assignPlayer(id, username) {
   const numOfVotes = 0;
   const voting = 0;
   const isPureVillager = (card1==='villager' && card2==='villager');
+  const isReady = false;
 
-  const player = {id, username, card1, card2, side, poison, playerId, numOfVotes, voting, isPureVillager};
+  const player = {id, username, card1, card2, card1Chinese, card2Chinese,side, poison, playerId, numOfVotes, voting, 
+    isPureVillager, isReady};
 
   players.push(player);
   return player;
 }
 
 function playerReady(id, currentPlayer) {
+  currentPlayer.isReady = true;
   alivePlayers.push(currentPlayer);
 }
 
