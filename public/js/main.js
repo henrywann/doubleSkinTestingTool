@@ -212,9 +212,14 @@ socket.on('updateCurrentCard', (alivePlayers) => {
     }
 });
 
-socket.on('gunSmithVotingRoundAction', (alivePlayers) => {
+socket.on('gunSmithVotingRoundAction', ({alivePlayers, round, isVotingRound}) => {
     console.log('entering gunSmithVotingRoundAction');
-    outputGunAction();
+    if (sessionStorage.getItem("currentCard")==="gunSmith") {
+        sessionStorage.setItem("state", "gunSmithAction");
+        outputGunSmithSelection(alivePlayers, round, isVotingRound);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    // outputGunAction();
 });
 
 // Message submit
@@ -462,7 +467,8 @@ function killPlayer(playerId) {
 }
 
 function gunPlayer(playerId, isVotingRound) {
-    socket.emit('gunPlayer', ({playerId: playerId.toString(), isVotingRound: isVotingRound}));
+    var voteIndex = sessionStorage.getItem("voteIndex");
+    socket.emit('gunPlayer', ({playerId: playerId.toString(), isVotingRound: isVotingRound, voteIndex: voteIndex}));
 }
 
 function silencePlayer(playerId) {

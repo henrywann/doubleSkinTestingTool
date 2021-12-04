@@ -43,9 +43,9 @@ function getPlayerSide(card1, card2) {
   let map = new Map();
   map.set('killer', -4);
   map.set('police', 3);
-  map.set('silencer', -1);
+  map.set('silencer', -2);
   map.set('doctor', 1);
-  map.set('gunSmith', 1);
+  map.set('gunSmith', 2);
   map.set('villager', 0);
   return map.get(card1) + map.get(card2);
 }
