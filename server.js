@@ -28,9 +28,12 @@ const {
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
+const routes = require('./routes');
 
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.use('/', routes); //to use the routes
 
 const isUsingSocketRoom = false;
 
@@ -42,6 +45,7 @@ var playersThatVoted = 0;
 var whoVotedWho = [];
 var isFirstRoundVoting = true;
 var playersWithMostVotes = [];
+var pkPlayer = [];
 var isPureVillagerExists = false;
 var isGunSmithFired = false;
 var isNewGame = true;
@@ -56,6 +60,7 @@ function resetGlobalVariablesForNewGame() {
     whoVotedWho = [];
     isFirstRoundVoting = true;
     playersWithMostVotes = [];
+    pkPlayer = [];
     isPureVillagerExists = false;
     isGunSmithFired = false;
     isNewGame = true;
@@ -201,7 +206,7 @@ io.on('connection', socket => {
         }
     });
 
-    socket.on('gunPlayer', ({playerId, isVotingRound}) => {
+    socket.on('gunPlayer', ({playerId, isVotingRound, voteIndex}) => {
         console.log(`gun playerId type: ${typeof playerId}`);
         console.log(`gun playerId: ${playerId}`);
         console.log(`isVotingRound type : ${typeof playerId}`);
@@ -209,10 +214,63 @@ io.on('connection', socket => {
             isGunSmithFired = false;
             noPlayerAction('gun',round);
         } else {
+            isGunSmithFired = true;
             if (isVotingRound) {
+                console.log('Gun Smith fired during voting');
+                console.log(`fired player: ${playerId}`);
+                console.log(`pk player: ${JSON.stringify(playersWithMostVotes, null, 4)}`);
                 gunnedPlayerDuringVoting = playerId;
+
+                populateDeadPlayers(gunnedPlayerDuringVoting, []);
+                io.emit('message', `玩家${gunnedPlayerDuringVoting}被Gun Smith带走了！`);
+                io.emit('roomUsers', getAlivePlayers());
+
+                proceedToNextNight();
+
+                // var isShotPK = false;
+                // playersWithMostVotes.forEach(e => {
+                //     if (e.playerId===gunnedPlayerDuringVoting) isShotPK = true;
+                // });
+
+                // if (playersWithMostVotes.length===2 && isShotPK) {
+                //     proceedToNextNight();
+                // } else {
+                //     const playerBeingVoted = voteblePlayers[voteIndex].playerId;
+                //     for( var i = 0; i < voteblePlayers.length; i++){ 
+                //         if ( voteblePlayers[i].playerId === gunnedPlayerDuringVoting) { 
+                //             voteblePlayers[i].alreadyVoted = 'Y';
+                //             voteblePlayers.splice(i, 1); 
+                //         }
+                //     }
+                //     const pkPlayerLength = playersWithMostVotes.length;
+                //     var pkPlayerList = [];
+                //     for( var i = 0; i < playersWithMostVotes.length; i++){ 
+                //         const playerId = playersWithMostVotes[i].playerId;
+                //         const numOfVotes = playersWithMostVotes[i].numOfVotes;
+                //         const alreadyVoted = playersWithMostVotes[i].alreadyVoted;
+                //         const curPlayer = {playerId, numOfVotes, alreadyVoted};
+                //         pkPlayerList.push(curPlayer);
+                //     }
+                //     if (pkPlayerList.length>1) {
+                //         for( var i = 0; i < pkPlayerList.length; i++){ 
+                //             if ( pkPlayerList[i].playerId === gunnedPlayerDuringVoting) { 
+                //                 pkPlayerList.splice(i, 1); 
+                //             }
+                //         }
+                //     }
+                //     console.log(`removed gunned player from votable. New votable: ${JSON.stringify(voteblePlayers, null, 4)}`);
+                //     console.log(`players with most votes ${JSON.stringify(playersWithMostVotes, null, 4)}`);
+                //     if (gunnedPlayerDuringVoting===playerBeingVoted) {
+                //         io.emit('votePlayer', ({
+                //             voteThisPlayer: pkPlayerLength>1?pkPlayerList[parseInt(voteIndex)]:voteblePlayers[parseInt(voteIndex)], 
+                //             voteIndex: parseInt(voteIndex)+1,
+                //             voteblePlayers: voteblePlayers,
+                //             round: round,
+                //             isFirstRoundVoting: isFirstRoundVoting
+                //         }));
+                //     }
+                // }
             } else {
-                isGunSmithFired = true;
                 playerAction(playerId, 'gun', round);
             }
         }
@@ -260,7 +318,8 @@ io.on('connection', socket => {
     });
 
     socket.on('increaseVote', ({votedPlayer, currentPlayerId, voteIndex}) => {
-        whoVotedWho.push(currentPlayerId);
+        if (currentPlayerId!==gunnedPlayerDuringVoting)
+            whoVotedWho.push(currentPlayerId);
         voteblePlayers.forEach(e => {
             if (e.playerId===votedPlayer.toString() && currentPlayerId!==gunnedPlayerDuringVoting) {
                 e.numOfVotes++;
@@ -289,21 +348,28 @@ function voteComplete(voteIndex) {
         if (whoVotedWho.length===0) io.emit('message', `没人投玩家${curPlayer}`);
         else io.emit('message', `玩家：${whoVotedWho}投了玩家${curPlayer}`);
         playersThatVoted = 0;
+        console.log(`voteIndex: ${voteIndex}`);
         if (parseInt(voteIndex)===(playersWithMostVotes.length>1?playersWithMostVotes.length-1:voteblePlayers.length-1)) {
             // calculate vote result
             console.log('voting of this round is over');
+            console.log(`voteblePlayers: ${JSON.stringify(voteblePlayers, null, 4)}`);
+            // console.log(`playersWithMostVotes: ${JSON.stringify(playersWithMostVotes, null, 4)}`);
+            var playersCanBeVoted = playersWithMostVotes.length>1?playersWithMostVotes:voteblePlayers;
             playersWithMostVotes = [];
+
             var mostVoteCount = 0;
-            voteblePlayers.forEach(e => {
+            console.log(`playersCanBeVoted: ${JSON.stringify(playersCanBeVoted, null, 4)}`);
+
+            playersCanBeVoted.forEach(e => {
                 if (e.numOfVotes===mostVoteCount) {
                     playersWithMostVotes.push(e);
                 } else if (e.numOfVotes > mostVoteCount) {
                     mostVoteCount = e.numOfVotes;
-                    playersWithMostVotes.length=0;
+                    playersWithMostVotes = [];
                     playersWithMostVotes.push(e);
                 }
             });
-            // console.log(`playersWithMostVotes: ${playersWithMostVotes}`);
+
             if (playersWithMostVotes.length>1 && isFirstRoundVoting) {
                 // Restart voting on the players with the same number of votes
                 voteblePlayers.forEach(e => {
@@ -324,12 +390,12 @@ function voteComplete(voteIndex) {
                     populateDeadPlayers(e.playerId, deadPlayers);
                     updateExistingPlayers(io);
                 });
-                var votedOutPlayers = [];
+                var votedOutPlayersMsg = [];
                 console.log(`voted out player length: ${playersWithMostVotes.length}`);
                 playersWithMostVotes.forEach(e => {
-                    votedOutPlayers.push(e.playerId);
+                    votedOutPlayersMsg.push(e.playerId);
                 });
-                io.emit('message', `玩家${votedOutPlayers}被投票出局！`);
+                io.emit('message', `玩家${votedOutPlayersMsg}被投票出局！`);
                 if (isBadGuysWon(isPureVillagerExists)) {
                     io.emit('message', '游戏结束！坏人胜利！');
                     resetGlobalVariablesForNewGame();
@@ -344,7 +410,7 @@ function voteComplete(voteIndex) {
         } else {
             // var curPlayer = voteblePlayers[parseInt(voteIndex)].playerId;
             // io.emit('message', `Player ${curPlayer} received votes from player(s): ${whoVotedWho}`);
-            whoVotedWho.length=0;
+            whoVotedWho = [];
             io.emit('votePlayer', ({
                 voteThisPlayer: playersWithMostVotes.length>1?playersWithMostVotes[parseInt(voteIndex)+1]:voteblePlayers[parseInt(voteIndex)+1], 
                 voteIndex: parseInt(voteIndex)+1,
@@ -382,6 +448,7 @@ function proceedToNextNight() {
     whoVotedWho = [];
     playersWithMostVotes = [];
     isFirstRoundVoting = true;
+    gunnedPlayerDuringVoting = -1;
 
     // console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
     io.emit('message', `天黑请闭眼...第${round}夜!`);
@@ -463,15 +530,24 @@ function roundOverAction(round, io) {
     } else {
         // voteblePlayers consists elements of playerId and alreadyVoted flag
         voteblePlayers = getVotePlayers(deadPlayers);
-        // console.log(`Players can be voted (in order): `);
-        // voteblePlayers.forEach(e => {
-        //     console.log(e.playerId);
-        // });
-        // if (!isGunSmithFired) {
-        //     console.log('gun smith fire option');
-        //     io.emit('gunSmithVotingRoundAction', getAlivePlayers());
-        // }
-        // console.log('no gun smith fire option');
+        var gunablePlayers = [];
+        for( var i = 0; i < voteblePlayers.length; i++){ 
+            const playerId = parseInt(voteblePlayers[i].playerId)-1;
+            const curPlayer = {playerId};
+            gunablePlayers.push(curPlayer);
+        }
+        gunablePlayers.sort((a, b) => a.playerId-b.playerId);
+
+        if (!isGunSmithFired) {
+            console.log('gun smith fire option');
+            io.emit('gunSmithVotingRoundAction', ({
+                alivePlayers: gunablePlayers, 
+                round: round,
+                isVotingRound: true
+            }));
+        }
+        // console.log(`votablePlayers: ${JSON.stringify(gunablePlayers, null, 4)}`);
+
         io.emit('votePlayer', ({
             voteThisPlayer: voteblePlayers[0], 
             voteIndex: 0, 
