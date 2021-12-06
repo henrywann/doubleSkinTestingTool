@@ -14,6 +14,9 @@ restart.addEventListener("click", restartGame);
 const { username, numOfPlayers } = Qs.parse(location.search, {
   ignoreQueryPrefix: true
 });
+socket.on("connect", () => {
+    console.log(socket.id);
+  });
 // Join Game
 socket.emit('joinGame', ({ 
     username: username,
@@ -114,12 +117,13 @@ socket.on('gunComplete', ({playerId, alivePlayers, round}) => {
     if (sessionStorage.getItem("currentCard")==="gunSmith") {
         sessionStorage.setItem("state", "gunComplete");
         alivePlayers.forEach(e => {
+            console.log(`gunSmith${e.playerId+1}-${round}`);
             document.getElementById(`gunSmith${e.playerId+1}-${round}`).disabled = true;
         });
         var noGunBtn = document.getElementById(`noGun-${round}`);
         noGunBtn.disabled = true;
         if (playerId!=='0') {
-            alert(`Gunned Player ${playerId}!`);
+            outputMessage(`玩家${playerId}被崩了!`);
         }
     }
 });
@@ -130,7 +134,7 @@ socket.on('injectComplete', ({playerId, alivePlayers, round}) => {
         alivePlayers.forEach(e => {
             document.getElementById(`doctor${e.playerId+1}-${round}`).disabled = true;
         });
-        alert(`Injected Player ${playerId}!`);
+        outputMessage(`玩家${playerId}被扎了!`)
     }
 });
 
@@ -143,7 +147,6 @@ socket.on('killComplete', ({playerId, alivePlayers, round}) => {
         });
         const message = `玩家${playerId}被杀死!`;
         outputMessage(message);
-        alert(message);
     }
 });
 
@@ -156,7 +159,7 @@ socket.on('silenceComplete', ({playerId, alivePlayers, round}) => {
         var noSilenceBtn = document.getElementById(`noSilence-${round}`);
         noSilenceBtn.disabled = true;
         if (playerId!=='0') {
-            alert(`玩家${playerId}被禁言!`);
+            outputMessage(`玩家${playerId}被禁言!`);
         }
     }
 });
@@ -173,7 +176,6 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
                 const currentId = currentCard==='killer' || currentCard ==='silencer'? '坏人': '好人';
                 const message = `玩家${playerId}的目前身份是${currentId}`;
                 outputMessage(message);
-                alert(message);
             }
         });
     }
@@ -219,7 +221,6 @@ socket.on('gunSmithVotingRoundAction', ({alivePlayers, round, isVotingRound}) =>
         outputGunSmithSelection(alivePlayers, round, isVotingRound);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-    // outputGunAction();
 });
 
 // Message submit
@@ -278,7 +279,6 @@ function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {
 }
 
 function voteYes(player, round, isFirstRoundVoting) {
-    alert(`Voted Yes for Player ${player}`);
     document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     const currentPlayerId = sessionStorage.getItem("playerId");
@@ -293,7 +293,6 @@ function voteYes(player, round, isFirstRoundVoting) {
 }
 
 function voteNo(player, round, isFirstRoundVoting) {
-    // alert(`Voted No for Player ${player}`);
     if (document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`) != null) {
         document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     }
@@ -301,7 +300,8 @@ function voteNo(player, round, isFirstRoundVoting) {
         document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     }
     const voteIndex = sessionStorage.getItem("voteIndex");
-    socket.emit('voteNo', voteIndex);
+    const playerId = sessionStorage.getItem("playerId");
+    socket.emit('voteNo', {voteIndex: voteIndex, playerId: playerId.toString()});
 }
 
 function outputVerifyKill(playerId, alivePlayers, round) {
@@ -353,7 +353,7 @@ function outputGunSmithSelection(alivePlayers, round, isVotingRound) {
     alivePlayers.forEach(e =>{
         div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="gunSmith${e.playerId+1}-${round}" onclick="gunPlayer(${e.playerId+1}, ${isVotingRound})"> ${e.playerId+1} </button>`);
     });
-    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noGun-${round}" onclick="gunPlayer(0,false)">不开枪 </button>`);
+    if (!isVotingRound) div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noGun-${round}" onclick="gunPlayer(0,false)">不开枪 </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
@@ -415,11 +415,11 @@ function getTeamMate(alivePlayers, count, card) {
 function outputSilencerSelection(alivePlayers, round) {
     const div = document.createElement('div');
     div.classList.add('message');
-    div.innerHTML = '<p class="text">Silencer Please silence a player<p>';
+    div.innerHTML = '<p class="text">禁言请禁言<p>';
     alivePlayers.forEach(e =>{
         div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="silence${e.playerId+1}-${round}" onclick="silencePlayer(${e.playerId+1})"> ${e.playerId+1} </button>`);
     });
-    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noSilence-${round}" onclick="silencePlayer(0)">No Silence </button>`);
+    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noSilence-${round}" onclick="silencePlayer(0)"> 不禁言 </button>`);
     document.querySelector('.chat-messages').appendChild(div);
 }
 
@@ -534,11 +534,6 @@ function outputUsers(users) {
       
       userList.appendChild(li);
     });
-}
-
-function outputGunAction() {
-    gunSmithAction.innerHTML = '<button id="gunSmithMidRoundAction" onclick="gunMidRoundAction()"> Fire! </button>';
-    // gunSmithAction.appendChild('<button id="gunSmithMidRoundAction" onclick="gunMidRoundAction()"> Fire! </button>');
 }
 
 function gunMidRoundAction() {
