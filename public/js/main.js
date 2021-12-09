@@ -223,6 +223,17 @@ socket.on('gunSmithVotingRoundAction', ({alivePlayers, round, isVotingRound}) =>
     }
 });
 
+socket.on('voteComplete', ({currentPlayer, round, isFirstRoundVoting, playerBeingVoted}) => {
+    if (sessionStorage.getItem("playerId")===currentPlayer) {
+        if (document.getElementById(`voteYes${playerBeingVoted}-${round}-${isFirstRoundVoting}`) != null) {
+            document.getElementById(`voteYes${playerBeingVoted}-${round}-${isFirstRoundVoting}`).disabled = true;
+        }
+        if (document.getElementById(`voteNo${playerBeingVoted}-${round}-${isFirstRoundVoting}`) != null) {
+            document.getElementById(`voteNo${playerBeingVoted}-${round}-${isFirstRoundVoting}`).disabled = true;
+        }
+    }
+})
+
 // Message submit
 chatForm.addEventListener('submit', e => {
     e.preventDefault();
@@ -279,26 +290,19 @@ function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {
 }
 
 function voteYes(player, round, isFirstRoundVoting) {
-    document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`).disabled = true;
-    document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`).disabled = true;
     const currentPlayerId = sessionStorage.getItem("playerId");
     const voteIndex = sessionStorage.getItem("voteIndex");
     socket.emit('increaseVote', (
         {
             votedPlayer: player,
             currentPlayerId: currentPlayerId,
-            voteIndex: voteIndex
+            voteIndex: voteIndex,
+            round: round
         }
     ));
 }
 
 function voteNo(player, round, isFirstRoundVoting) {
-    if (document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`) != null) {
-        document.getElementById(`voteYes${player}-${round}-${isFirstRoundVoting}`).disabled = true;
-    }
-    if (document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`) != null) {
-        document.getElementById(`voteNo${player}-${round}-${isFirstRoundVoting}`).disabled = true;
-    }
     const voteIndex = sessionStorage.getItem("voteIndex");
     const playerId = sessionStorage.getItem("playerId");
     socket.emit('voteNo', {voteIndex: voteIndex, playerId: playerId.toString()});
