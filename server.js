@@ -290,8 +290,9 @@ io.on('connection', socket => {
         // console.log(allPlayers);
     });
 
-    socket.on('increaseVote', ({votedPlayer, currentPlayerId, voteIndex}) => {
+    socket.on('increaseVote', ({votedPlayer, currentPlayerId, voteIndex, round}) => {
         console.log(`Player ${currentPlayerId} voted player ${votedPlayer}`);
+        io.emit('voteComplete', ({currentPlayer: currentPlayerId, round: round, isFirstRoundVoting: isFirstRoundVoting, playerBeingVoted: votedPlayer}));
         if (currentPlayerId!==gunnedPlayerDuringVoting)
             whoVotedWho.push(currentPlayerId);
         voteblePlayers.forEach(e => {
@@ -306,7 +307,9 @@ io.on('connection', socket => {
     });
 
     socket.on('voteNo', ({voteIndex, playerId}) => {
-        console.log(`Player ${playerId} voted no for player ${voteblePlayers[parseInt(voteIndex)].playerId}`);
+        const playerBeingVoted = voteblePlayers[parseInt(voteIndex)].playerId;
+        console.log(`Player ${playerId} voted no for player ${playerBeingVoted}`);
+        io.emit('voteComplete', ({currentPlayer: playerId, round: round, isFirstRoundVoting: isFirstRoundVoting, playerBeingVoted: playerBeingVoted}));
         voteComplete(voteIndex);
     });
 
