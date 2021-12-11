@@ -26,6 +26,26 @@ socket.emit('joinGame', ({
     voteIndex: sessionStorage.getItem("voteIndex")
  }));
 
+ socket.on('revengerAction', () => {
+    if (sessionStorage.getItem("isRevenger")==='true') {
+        outputRevengerSelection();
+    }
+ });
+
+ socket.on('completeRevengeAction', ({playerId, cardId}) => {
+     console.log(`playerId: ${playerId}`);
+    if (sessionStorage.getItem("isRevenger")==='true') {
+        for (var i=0; i<7; i++) {
+            document.getElementById(`revenge${i+1}-card1`).disabled = true;
+            document.getElementById(`revenge${i+1}-card2`).disabled = true;
+        }
+    }
+    if (sessionStorage.getItem("playerId")===playerId.toString()) {
+        const message = `您的第${cardId}张牌被复仇者选中！`;
+        outputMessage(message);
+    }
+ });
+
  socket.on('restartGameForAll', () => {
     sessionStorage.clear();
     window.location.href = 'index.html';
@@ -203,6 +223,10 @@ socket.on('updateCurrentCard', (alivePlayers) => {
         console.log(`playerId: ${typeof e.playerId} ${e.playerId}`);
         if ((e.playerId+1).toString()===sessionStorage.getItem("playerId")) {
             isPlayerAlive = true;
+            if ((sessionStorage.getItem("currentCard")==='revenger' && e.card1==='killer') || 
+                (sessionStorage.getItem("currentCard")==='revenger' && e.card1==='' && e.card2=='killer') ) {
+                sessionStorage.setItem("currentCard", 'killer');
+            }
             if (e.card1==='') {
                 console.log("card1 is empty, setting card2 to currentCard");
                 sessionStorage.setItem("currentCard", e.card2);
@@ -276,6 +300,25 @@ function outputIdentity(player) {
         sessionStorage.setItem("playerId", player.playerId+1);
         sessionStorage.setItem("socketId", player.id);
     }
+    if (player.card1==='revenger' || player.card2==='revenger') {
+        sessionStorage.setItem("isRevenger", true);
+        sessionStorage.setItem('isRevengerActivated', false);
+    }
+}
+
+function outputRevengerSelection() {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = `<p class="text">复仇者请选择<p>`;
+    for (var i=0; i<7; i++) {
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="revenge${i+1}-card1" onclick="revenge(${i+1}, 1)"> 玩家${i+1}身份1 </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="revenge${i+1}-card2" onclick="revenge(${i+1}, 2)"> 玩家${i+1}身份2 </button>`);
+    }
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
+function revenge(playerId, cardId) {
+    socket.emit('chooseRevenge', ({playerId: playerId, cardId: cardId}));
 }
 
 function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {

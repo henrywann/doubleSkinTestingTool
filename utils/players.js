@@ -18,9 +18,9 @@ function sortAlivePlayers() {
 function playerJoin(id, username, isNewGame, playerLength) {
   if (isNewGame) {
     if (playerLength==='7') {
-      cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
+      cards = ['killer', 'revenger', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
       'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
-      cardsChinese = ['杀手','杀手','警察','警察','医生','Gun Smith','禁言','平民','平民','平民','平民',
+      cardsChinese = ['杀手','复仇者','警察','警察','医生','Gun Smith','禁言','平民','平民','平民','平民',
       '平民','平民','平民'];
     } else {
       cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 'villager', 
@@ -42,6 +42,7 @@ function playerJoin(id, username, isNewGame, playerLength) {
 function getPlayerSide(card1, card2) {
   let map = new Map();
   map.set('killer', -4);
+  map.set('revenger', -4);
   map.set('police', 3);
   map.set('silencer', -2);
   map.set('doctor', 1);
@@ -87,9 +88,9 @@ function playerReady(id, currentPlayer) {
 }
 
 function playerAction(playerId, action, round) {
+  console.log(`round: ${round}`);
   if (roundAction[round-1]==undefined) {
-    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1};
-    roundAction.push(getThisRoundAction(thisRound, action, playerId));
+    roundAction.push(getThisRoundAction(getThisRound(round), action, playerId));
   } else {
     var thisRound = roundAction[round-1];
     roundAction[round-1] = getThisRoundAction(thisRound, action, playerId);
@@ -107,18 +108,29 @@ function getThisRoundAction(thisRound, action, playerId) {
     thisRound.injected = playerId;
   } else if (action==='silence') {
     thisRound.silenced = playerId;
+  } else if (action==='revenge') {
+    thisRound.revenged = playerId;
   }
   return thisRound;
 }
 
 function noPlayerAction(action, round) {
   if (roundAction[round-1]==undefined) {
-    var thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1};
-    roundAction.push(getThisRoundNoAction(thisRound, action));
+    roundAction.push(getThisRoundNoAction(getThisRound(round), action));
   } else {
     var thisRound = roundAction[round-1];
     roundAction[round-1] = getThisRoundNoAction(thisRound, action);
   }
+}
+
+function getThisRound(round) {
+  var thisRound = [];
+    if (round===1 && cards.length===14) {
+      thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1, "revenged": -1};
+    } else {
+      thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1};
+    }
+    return thisRound;
 }
 
 function getThisRoundNoAction(thisRound, action) {
@@ -143,9 +155,14 @@ function isRoundOver(round) {
   }
   if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 
       && currentRound.gunned!==-1 && currentRound.silenced!==-1) {
-    console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
-    gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}`);
-    return true;
+      console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
+        gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}`);
+      if (round===1) {
+        console.log(`revenged: ${currentRound.revenged}`);
+          return currentRound.revenged!==-1;
+      } else {
+        return true;
+      }
   } else {
     return false;
   }
@@ -176,7 +193,7 @@ function calculateRoundResult(round, io) {
       }
     });
   }
-  updateExistingPlayers(io);
+  // updateExistingPlayers();
   return deadPlayers.sort();
 }
 
@@ -184,16 +201,7 @@ function getSilencedPlayer(round) {
   return roundAction[round-1].silenced.toString();
 }
 
-function updateExistingPlayers(io) {
-  // alivePlayers.forEach(e => {
-  //   if (e.card1==='' && e.card2==='') {
-  //     const socket = io.of('/').sockets.get(e.id);
-  //     socket.leave('policeGroup');
-  //     socket.leave('doctor');
-  //     socket.leave('killerGroup');
-  //     socket.leave('gunSmith');
-  //   }
-  // });
+function updateExistingPlayers() {
   var filtered = alivePlayers.filter(function(value, index, arr){ 
     return value.card2!=='';
   });

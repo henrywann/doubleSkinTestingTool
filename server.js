@@ -51,6 +51,8 @@ var isGunSmithFired = false;
 var isNewGame = true;
 var gunablePlayers = [];
 var gunnedPlayerDuringVoting = -1;
+var revengeChosen = -1;
+var revengeCard = -1;
 
 function resetGlobalVariablesForNewGame() {
     playerLength = 0;
@@ -67,6 +69,8 @@ function resetGlobalVariablesForNewGame() {
     isNewGame = true;
     gunablePlayers = [];
     gunnedPlayerDuringVoting = -1;
+    var revengeChosen = -1;
+    var revengeCard = -1;
 }
 
 // Run with client connects
@@ -149,6 +153,16 @@ io.on('connection', socket => {
         io.emit('restartGameForAll');
     });
 
+    socket.on('chooseRevenge', ({playerId, cardId}) => {
+        revengeChosen = playerId;
+        revengeCard = cardId;
+        playerAction(playerId, 'revenge', round);
+        io.emit('completeRevengeAction', ({playerId, cardId}));
+        if (isRoundOver(round)) {
+            roundOverAction(round, io);
+        }
+    });
+
     socket.on('verifyKillPlayer', (playerId) => {
         io.emit('verifyKill', {
             playerId: playerId, 
@@ -228,6 +242,17 @@ io.on('connection', socket => {
 
                 populateDeadPlayers(gunnedPlayerDuringVoting, []);
                 io.emit('message', `玩家${gunnedPlayerDuringVoting}被Gun Smith带走了！`);
+                if (gunnedPlayerDuringVoting===revengeChosen.toString()) {
+                    getAlivePlayers().forEach(element => {
+                        if ((element.playerId+1).toString()===gunnedPlayerDuringVoting) {
+                            if ((revengeCard===1 && element.card1==='') || (revengeCard===2 && element.card2==='')) {
+                                console.log('activate revenger');
+                                activateRevenager();
+                            }
+                        }
+                    })
+                }
+                updateExistingPlayers();
                 io.emit('roomUsers', getAlivePlayers());
             } else {
                 playerAction(playerId, 'gun', round);
@@ -366,7 +391,17 @@ function voteComplete(voteIndex) {
                 playersWithMostVotes.forEach(e => {
                     var deadPlayers = [];
                     populateDeadPlayers(e.playerId, deadPlayers);
-                    updateExistingPlayers(io);
+                    if (e.playerId===revengeChosen.toString()) {
+                        getAlivePlayers().forEach(element => {
+                            if ((element.playerId+1).toString()===e.playerId) {
+                                if ((revengeCard===1 && element.card1==='') || (revengeCard===2 && element.card2==='')) {
+                                    console.log('activate revenger');
+                                    activateRevenager();
+                                }
+                            }
+                        })
+                    }
+                    updateExistingPlayers();
                 });
                 var votedOutPlayersMsg = [];
                 console.log(`voted out player length: ${playersWithMostVotes.length}`);
@@ -430,6 +465,10 @@ function proceedToNextNight() {
 
     // console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
     io.emit('message', `天黑请闭眼...第${round}夜!`);
+    if (round===1) {
+        io.emit('revengerAction');
+    }
+    
     if (silencerCount > 0) {
         io.emit('silencerAction', {alivePlayers: getAlivePlayers(), round: round});
     } else {
@@ -479,6 +518,20 @@ function proceedToNextNight() {
 function roundOverAction(round, io) {
     console.log('Round Over');
     const deadPlayers = calculateRoundResult(round, io);
+    console.log(`alive players: ${JSON.stringify(getAlivePlayers(), null, 4)}`);
+    deadPlayers.forEach(e => {
+        if (e===revengeChosen.toString()) {
+            getAlivePlayers().forEach(element => {
+                if ((element.playerId+1).toString()===e) {
+                    if ((revengeCard===1 && element.card1==='') || (revengeCard===2 && element.card2==='')) {
+                        console.log('activate revenger');
+                        activateRevenager();
+                    }
+                }
+            })
+        }
+    });
+    updateExistingPlayers();
     var deadPlayerMessage = '';
     if (deadPlayers.length === 0) {
         deadPlayerMessage = '平安夜，没有人死!';
@@ -543,6 +596,19 @@ function roundOverAction(round, io) {
             isFirstRoundVoting: isFirstRoundVoting
         }));
     }
+}
+
+function  activateRevenager() {
+    getAlivePlayers().forEach(e => {
+        if (e.card1==='revenger') {
+            e.card1 = 'killer';
+        } else if (e.card2==='revenger') {
+            e.card2 = 'killer';
+        }
+    });
+    console.log(`after activeate revenger: ${JSON.stringify(getAlivePlayers(), null, 4)}`);
+
+    // io.emit('activateRevenger');
 }
 
 const PORT = process.env.PORT || 4000;
