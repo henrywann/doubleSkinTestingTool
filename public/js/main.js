@@ -65,13 +65,13 @@ socket.on('playerReadyCheckmark', (allPlayers) => {
 
 // Displays player typed messages
 socket.on('playerChatmessage', ({message, playername, playerId}) => {
-    console.log(`Incoming message: ${message} ${playername} ${playerId}`);
+    // console.log(`Incoming message: ${message} ${playername} ${playerId}`);
     outputPlayerChatMessage(message, playername, playerId);
 });
 
 // Displays game messages
 socket.on('message', message => {
-    console.log(`Incoming message: ${message}`);
+    // console.log(`Incoming message: ${message}`);
     outputMessage(message);
 });
 
@@ -346,6 +346,7 @@ function voteYes(player, round, isFirstRoundVoting) {
 }
 
 function voteNo(player, round, isFirstRoundVoting) {
+    console.log('clicked on voteNo');
     const voteIndex = sessionStorage.getItem("voteIndex");
     const playerId = sessionStorage.getItem("playerId");
     socket.emit('voteNo', {voteIndex: voteIndex, playerId: playerId.toString()});
