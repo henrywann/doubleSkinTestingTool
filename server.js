@@ -349,7 +349,7 @@ io.on('connection', socket => {
 function voteComplete(voteIndex) {
     playersThatVoted++;
     if (playersThatVoted===voteblePlayers.length) {
-        var curPlayer = voteblePlayers[parseInt(voteIndex)].playerId;
+        var curPlayer = isFirstRoundVoting?voteblePlayers[parseInt(voteIndex)].playerId:playersWithMostVotes[parseInt(voteIndex)].playerId;
         if (whoVotedWho.length===0) io.emit('message', `没人投玩家${curPlayer}`);
         else io.emit('message', `玩家：${whoVotedWho}投了玩家${curPlayer}`);
         playersThatVoted = 0;
