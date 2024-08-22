@@ -5,6 +5,7 @@ var cards = [];
 var cardsChinese = [];
 var alivePlayers = [];
 var roundAction = [];
+var globalBadIdentities = '0'; // 0: 6 players, 1: killer, revenger, silencer, 2: killer, bioChemist, sliencer
 
 function getAlivePlayers() {
   return alivePlayers;
@@ -15,13 +16,23 @@ function sortAlivePlayers() {
 }
 
 // Join player to game and show cards
-function playerJoin(id, username, isNewGame, playerLength) {
+function playerJoin(id, username, isNewGame, playerLength, badIdentities) {
   if (isNewGame) {
     if (playerLength==='7') {
-      cards = ['killer', 'revenger', 'police', 'police', 'doctor', 'gunSmith', 'silencer', 'villager',
-      'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
-      cardsChinese = ['杀手','复仇者','警察','警察','医生','Gun Smith','禁言','平民','平民','平民','平民',
-      '平民','平民','平民'];
+      cards = ['police', 'police', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager', 'villager'];
+      cardsChinese = ['警察','警察','平民','平民','平民','平民','平民','平民','平民'];
+      globalBadIdentities = badIdentities;
+      if (badIdentities === '1') {
+        cards.push('killer', 'revenger', 'silencer');
+        cards.push('gunSmith', 'doctor'); // TODO: need to dynamically populate good guy cards
+        cardsChinese.push('杀手','复仇者','禁言');
+        cardsChinese.push('Gun Smith','医生'); // TODO: need to dynamically populate good guy cards
+      } else {
+        cards.push('killer', 'bioChemist', 'silencer');
+        cards.push('gunSmith', 'doctor'); // TODO: need to dynamically populate good guy cards
+        cardsChinese.push('杀手','生化学家','禁言');
+        cardsChinese.push('Gun Smith','医生'); // TODO: need to dynamically populate good guy cards
+      }
     } else {
       cards = ['killer', 'killer', 'police', 'police', 'doctor', 'gunSmith', 'villager', 'villager', 
       'villager', 'villager', 'villager', 'villager'];
@@ -43,6 +54,7 @@ function getPlayerSide(card1, card2) {
   let map = new Map();
   map.set('killer', -4);
   map.set('revenger', -4);
+  map.set('bioChemist', -4);
   map.set('police', 3);
   map.set('silencer', -2);
   map.set('doctor', 1);
@@ -89,8 +101,10 @@ function playerReady(id, currentPlayer) {
 
 function playerAction(playerId, action, round) {
   console.log(`round: ${round}`);
+  // if there is no player performed ability, initialize the current roundAction with all -1 values. Otherwise, get the current abilities 
+  // performed and add current action to this round.
   if (roundAction[round-1]==undefined) {
-    roundAction.push(getThisRoundAction(getThisRound(round), action, playerId));
+    roundAction.push(getThisRoundAction(initializeThisRound(round), action, playerId));
   } else {
     var thisRound = roundAction[round-1];
     roundAction[round-1] = getThisRoundAction(thisRound, action, playerId);
@@ -110,25 +124,37 @@ function getThisRoundAction(thisRound, action, playerId) {
     thisRound.silenced = playerId;
   } else if (action==='revenge') {
     thisRound.revenged = playerId;
+  } else if (action==='release') {
+    thisRound.poisonReleased = playerId;
   }
   return thisRound;
 }
 
 function noPlayerAction(action, round) {
   if (roundAction[round-1]==undefined) {
-    roundAction.push(getThisRoundNoAction(getThisRound(round), action));
+    roundAction.push(getThisRoundNoAction(initializeThisRound(round), action));
   } else {
     var thisRound = roundAction[round-1];
     roundAction[round-1] = getThisRoundNoAction(thisRound, action);
   }
 }
 
-function getThisRound(round) {
+// TODO: need to dynamically initialize player actions based on the actual cards
+// Initialize player actions for current night round
+function initializeThisRound(round) {
   var thisRound = [];
-    if (round===1 && cards.length===14) {
-      thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1, "revenged": -1};
-    } else {
+    if (globalBadIdentities === '0') { // 6 players
       thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1};
+    } else if (globalBadIdentities === '1') { // 7 players: killer, revenger, silencer
+      if (round===1 && cards.length===14) {
+        thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1, "revenged": -1};
+      } else {
+        thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1};
+      }
+    } else if (globalBadIdentities === '2') { // 7 players: killer, bioChem, silencer
+      thisRound = {"killed": -1, "checked": -1, "gunned": -1, "injected": -1, "silenced": -1, "poisonReleased": -1};
+    } else {
+      console.error('globalBadIdentities is not valid!!!');
     }
     return thisRound;
 }
@@ -144,6 +170,8 @@ function getThisRoundNoAction(thisRound, action) {
     thisRound.injected = 0;
   } else if (action==='silence') {
     thisRound.silenced = 0;
+  } else if (action==='release') {
+    thisRound.poisonReleased = 0;
   }
   return thisRound;
 }
@@ -153,7 +181,9 @@ function isRoundOver(round) {
   if (currentRound===undefined) { // all gods are present
     return false;
   }
-  if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 
+  // TODO; need to dynamically check if all the actions are performed based on the cards selected
+  if (globalBadIdentities === '0' || globalBadIdentities === '1') { // 6 players, or 7 players with revenger
+    if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 
       && currentRound.gunned!==-1 && currentRound.silenced!==-1) {
       console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
         gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}`);
@@ -163,9 +193,23 @@ function isRoundOver(round) {
       } else {
         return true;
       }
+    } else {
+      return false;
+    }
+  } else if (globalBadIdentities === '2') { // 7 players with bioChemist
+    if (currentRound.killed!==-1 && currentRound.checked!==-1 && currentRound.injected!==-1 
+      && currentRound.gunned!==-1 && currentRound.silenced!==-1 && currentRound.poisonReleased!==-1) {
+      console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
+        gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}, 
+        poisoned: ${currentRound.poisonReleased}`);
+      return true;
+    } else {
+      return false;
+    }
   } else {
-    return false;
+    console.error('globalBadIdentities is not valid!!!');
   }
+
 }
 
 function calculateRoundResult(round, io) {
@@ -192,6 +236,39 @@ function calculateRoundResult(round, io) {
         }
       }
     });
+  }
+  if (currentRound.poisonReleased!==0) {
+    console.log('Poison is released');
+
+    // If only 2 or 3 players remaining, add poison to all players
+    if (alivePlayers.length === 2 || alivePlayers.length === 3) {
+      alivePlayers.forEach(e => {
+        e.poison++;
+      });
+    } else { // If more than 3 players remaining, add poison to the target and the 2 adjacent players
+      for (var i=0; i<alivePlayers.length; i++) {
+        if ((alivePlayers[i].playerId+1).toString() === currentRound.poisonReleased) {
+          if (i===0) {
+            alivePlayers[alivePlayers.length-1].poison++;
+            alivePlayers[i+1].poison++;
+          } else if (i===alivePlayers.length-1) {
+            alivePlayers[i-1].poison++;
+            alivePlayers[0].poison++;
+          } else {
+            alivePlayers[i-1].poison++
+            alivePlayers[i+1].poison++;
+          }
+          alivePlayers[i].poison++;
+        }
+      }
+    }
+
+    for (var i=0; i<alivePlayers.length; i++) {
+      if (alivePlayers[i].poison === 2) {
+        populateDeadPlayers((alivePlayers[i].playerId+1).toString(), deadPlayers);
+      }
+    }
+
   }
   // updateExistingPlayers();
   return deadPlayers.sort();

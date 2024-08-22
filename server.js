@@ -54,6 +54,9 @@ var gunnedPlayerDuringVoting = -1;
 var revengeChosen = -1;
 var revengeCard = -1;
 var noKillerPresent = false;
+var goodPlayerCardList = [];
+var badGuysCombination;
+var poisonReleasedRound = 0;
 
 function resetGlobalVariablesForNewGame() {
     playerLength = 0;
@@ -73,6 +76,7 @@ function resetGlobalVariablesForNewGame() {
     revengeChosen = -1;
     revengeCard = -1;
     noKillerPresent = false;
+    poisonReleasedRound = 0;
 }
 
 // Run with client connects
@@ -81,12 +85,13 @@ io.on('connection', socket => {
     socket.on("disconnect", () => {
         console.log('disconnected');
     });
-    socket.on('joinGame', ({username, numOfPlayers, socketId, state, voteIndex}) => {
+    socket.on('joinGame', ({username, numOfPlayers, badIdentities, socketId, state, voteIndex}) => {
+        badGuysCombination = badIdentities;
         if (socketId==null) {
             if (playerLength === 0) {
                 playerLength = numOfPlayers;
             }
-            const player = playerJoin(socket.id, username, isNewGame, playerLength);
+            const player = playerJoin(socket.id, username, isNewGame, playerLength, badIdentities);
             isNewGame = false;
             if (player == null) {
                 socket.emit('message', 'Speculator mode. Please wait for game to finish.');
@@ -150,6 +155,23 @@ io.on('connection', socket => {
         }
     });
 
+    socket.on('initialGoodCards', () => {
+        io.emit('displaySelectedCardsEvent', goodPlayerCardList);
+    });
+
+    socket.on('selectGoodCard', (card) => {
+        if (goodPlayerCardList.includes(card)) {
+            const index = goodPlayerCardList.indexOf(card);
+            goodPlayerCardList.splice(index, 1);
+        } else {
+            if (goodPlayerCardList.length < 2) {
+                goodPlayerCardList.push(card);
+            } else {
+            }
+        }
+        io.emit('displaySelectedCardsEvent', goodPlayerCardList);
+    });
+
     socket.on('restartGame', () => {
         resetGlobalVariablesForNewGame();
         io.emit('restartGameForAll');
@@ -182,6 +204,25 @@ io.on('connection', socket => {
         playerAction(playerId, 'kill', round);
         io.emit('killComplete', {
             playerId: playerId, 
+            alivePlayers: getAlivePlayers(),
+            round: round
+        });
+        if (isRoundOver(round)) {
+            roundOverAction(round, io);
+        }
+    });
+
+    socket.on('releasePoison', (playerId) => {
+        console.log('received bioChemist action');
+        console.log(`poison released on playerId ${playerId} ${typeof playerId}`);
+        console.log(`poison released round is ${poisonReleasedRound}`);
+        playerAction(playerId, 'release', round);
+        if (playerId!=="0") {
+            console.log('poisoned player is not 0, assigning poisonReleasedRound to current round');
+            poisonReleasedRound = round;
+        }
+        io.emit('poisonReleaseComplete', {
+            playerId: playerId,
             alivePlayers: getAlivePlayers(),
             round: round
         });
@@ -440,11 +481,13 @@ function voteComplete(voteIndex) {
 
 function proceedToNextNight() {
     console.log('proceeding to next round');
+    // clearing variables for current night
     var killerCount = 0;
     var policeCount = 0;
     var doctorCount = 0;
     var gunSmithCount = 0;
     var silencerCount = 0;
+    var bioChemistCount = 0;
     var i;
     for (i=0; i<getAlivePlayers().length; i++) {
         const currentPlayer = getAlivePlayers()[i];
@@ -454,6 +497,7 @@ function proceedToNextNight() {
         else if (role==='police') policeCount++;
         else if (role==='doctor') doctorCount++;
         else if (role==='gunSmith') gunSmithCount++;
+        else if (role==='bioChemist') bioChemistCount++;
     }
 
     io.emit('updateCurrentCard', getAlivePlayers());
@@ -466,10 +510,31 @@ function proceedToNextNight() {
     isFirstRoundVoting = true;
     gunnedPlayerDuringVoting = -1;
 
+
     // console.log(`killerCount: ${killerCount}, policeCount: ${policeCount}, doctorCount: ${doctorCount}, gunsmithCount: ${gunSmithCount}`);
     io.emit('message', `天黑请闭眼...第${round}夜!`);
-    if (round===1) {
-        io.emit('revengerAction');
+    console.log(`badGuysCombination: ${badGuysCombination}`);
+    console.log(`biochemist count: ${bioChemistCount}`);
+    console.log(`poisonReleasedRound during night: ${poisonReleasedRound}`);
+    
+    if (badGuysCombination === '1') {
+        if (round===1) {
+            io.emit('revengerAction');
+        }
+    } else if (badGuysCombination === '2') {
+        // bioChemist only able to use ability 2 rounds after first release, and can only use ability twice
+        if (round === 1 || round > poisonReleasedRound+1) {
+            console.log('current round is greater than poisonReleasedRound+1');
+            console.log(`biochemist count: ${bioChemistCount}`)
+            if (bioChemistCount > 0) {
+                noKillerPresent = false;
+                io.emit('bioChemistAction', {alivePlayers: getAlivePlayers(), round: round, bioChemistCount: bioChemistCount});
+            } else {
+                noPlayerAction('release',round);
+            }
+        } else {
+            noPlayerAction('release',round);
+        }
     }
     
     if (silencerCount > 0) {

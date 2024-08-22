@@ -11,7 +11,7 @@ ready.addEventListener("click", readyToPlay);
 const restart = document.getElementById("restartBtn");
 restart.addEventListener("click", restartGame);
 
-const { username, numOfPlayers } = Qs.parse(location.search, {
+const { username, numOfPlayers, badIdentities } = Qs.parse(location.search, {
   ignoreQueryPrefix: true
 });
 socket.on("connect", () => {
@@ -21,6 +21,7 @@ socket.on("connect", () => {
 socket.emit('joinGame', ({ 
     username: username,
     numOfPlayers: numOfPlayers,
+    badIdentities: badIdentities,
     socketId: sessionStorage.getItem("socketId"),
     state: sessionStorage.getItem("state"),
     voteIndex: sessionStorage.getItem("voteIndex")
@@ -92,6 +93,14 @@ socket.on('killerAction', ({alivePlayers, round, killerCount}) => {
     }
 });
 
+socket.on('bioChemistAction', ({alivePlayers, round, bioChemistCount}) => {
+    if (sessionStorage.getItem("currentCard")==="bioChemist") {
+        sessionStorage.setItem("state", "bioChemistAction");
+        outputBioChemistSelection(alivePlayers, round, bioChemistCount);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+});
+
 socket.on('policeAction', ({alivePlayers, round, policeCount}) => {
     if (sessionStorage.getItem("currentCard")==="police") {
         sessionStorage.setItem("state", "policeAction");
@@ -158,6 +167,20 @@ socket.on('injectComplete', ({playerId, alivePlayers, round}) => {
     }
 });
 
+socket.on('poisonReleaseComplete', ({playerId, alivePlayers, round}) => {
+    if (sessionStorage.getItem("currentCard")==="bioChemist") {
+        sessionStorage.setItem("state", "releaseComplete");
+        alivePlayers.forEach(e => {
+            document.getElementById(`bioChemist${e.playerId+1}-${round}`).disabled = true;
+        });
+        var noReleaseBtn = document.getElementById(`noRelease-${round}`);
+        noReleaseBtn.disabled = true;
+        if (playerId!=='0') {
+            outputMessage(`玩家${playerId}被释放了毒气!并且毒气扩散到了左右玩家！`)
+        }
+    }
+});
+
 
 socket.on('killComplete', ({playerId, alivePlayers, round}) => {
     if (sessionStorage.getItem("currentCard")==="killer") {
@@ -193,7 +216,7 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
         alivePlayers.forEach(e => {
             if (e.playerId === playerId-1) {
                 const currentCard = e.card1 === '' ? e.card2: e.card1;
-                const currentId = currentCard==='killer' || currentCard ==='silencer'? '坏人': '好人';
+                const currentId = (currentCard==='killer' || currentCard ==='silencer' || currentCard === 'bioChemist') ? '坏人': '好人';
                 const message = `玩家${playerId}的目前身份是${currentId}`;
                 outputMessage(message);
             }
@@ -446,6 +469,18 @@ function outputKillerSelection(alivePlayers, round, killerCount) {
     document.querySelector('.chat-messages').appendChild(div);
 }
 
+function outputBioChemistSelection(alivePlayers, round, bioChemistCount) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = '<p class="text">生化学家请放毒<p>';
+
+    alivePlayers.forEach(e =>{
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="bioChemist${e.playerId+1}-${round}" onclick="releasePoison(${e.playerId+1})"> ${e.playerId+1} </button>`);
+    });
+    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noRelease-${round}" onclick="releasePoison(0)"> 不放毒 </button>`);
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
 function getTeamMate(alivePlayers, count, card) {
     var teamMate = -1;
     if (count > 1) {
@@ -521,6 +556,10 @@ function gunPlayer(playerId, isVotingRound) {
 
 function silencePlayer(playerId) {
     socket.emit('silencePlayer', playerId.toString());
+}
+
+function releasePoison(playerId) {
+    socket.emit('releasePoison', playerId.toString());
 }
 
 function clickSwitchOrder() {

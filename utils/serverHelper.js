@@ -16,6 +16,11 @@ function updateSocketRoomRole(io, currentPlayer) {
     } else if (currentPlayer.card1==='' && currentPlayer.card2==='silencer') {
         return 'silencer';
     }
+    if (currentPlayer.card1==='bioChemist') {
+        return 'bioChemist';
+    } else if (currentPlayer.card1==='' && currentPlayer.card2==='bioChemist') {
+        return 'bioChemist';
+    }
     if (currentPlayer.card1==='killer') {
         // socket.join('killerGroup');
         return 'killer';
