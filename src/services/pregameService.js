@@ -16,7 +16,7 @@ const { proceedToNextNight } = require("../services/inGameService");
 
 const { resetInGameLogicVariables } = require("../repositories/ingameLogicRepository");
 
-var gameLogicVariables = require("../repositories/gameLogicRepository");
+// var gameLogicVariables = require("../repositories/gameLogicRepository");
 
 const GameLogicVariables = require('../repositories/gameLogicRepository');
 
@@ -25,6 +25,23 @@ var cards = []; // TODO: need to move this to model or repository layer
 var cardsChinese = [];
 
 var gameLogicVariables = new GameLogicVariables();
+
+function getInitialGoodCards() {
+  return gameLogicVariables.goodPlayerCardList;
+}
+
+function processSelectGoodCard(card, io) {
+  if (gameLogicVariables.goodPlayerCardList.includes(card)) {
+    const index = gameLogicVariables.goodPlayerCardList.indexOf(card);
+    gameLogicVariables.goodPlayerCardList.splice(index, 1);
+  } else {
+    if (gameLogicVariables.goodPlayerCardList.length < 2) {
+      gameLogicVariables.goodPlayerCardList.push(card);
+    } else {
+    }
+  }
+  io.emit("displaySelectedCardsEvent", gameLogicVariables.goodPlayerCardList);
+}
 
 function processJoinGame(joinGame, socket, io) {
   console.log('processJoinGame playerlength: ', joinGame.numOfPlayers);
@@ -113,7 +130,7 @@ function playerJoin(id, username, playerLength) {
     cardsChinese = cardConfig.cardsChinese;
 
     initAlivePlayers();
-    resetInGameLogicVariables();
+    // resetInGameLogicVariables();
     initPlayers();
     initAllPlayers();
   }
@@ -175,7 +192,7 @@ function getPlayerSide(card1, card2) {
   map.set("police", 3);
   map.set("silencer", -2);
   map.set("doctor", 1);
-  map.set("gunSmith", 2);
+  map.set("gunSmith", 1);
   map.set("villager", 0);
   return map.get(card1) + map.get(card2);
 }
@@ -207,4 +224,6 @@ function playerReady(currentPlayer) {
 module.exports = {
   processJoinGame,
   processPlayerReady,
+  processSelectGoodCard,
+  getInitialGoodCards,
 };

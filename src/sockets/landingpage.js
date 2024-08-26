@@ -15,7 +15,12 @@ const { resetVotingLogicVariables } = require("../repositories/votingLogicReposi
 
 const { initAlivePlayers, getAlivePlayers } = require("../models/alivePlayers");
 
-const { processJoinGame, processPlayerReady } = require("../services/pregameService");
+const {
+  processJoinGame,
+  processPlayerReady,
+  processSelectGoodCard,
+  getInitialGoodCards,
+} = require("../services/pregameService");
 
 const {
   playerAction,
@@ -54,7 +59,9 @@ const {
 // }
 
 module.exports = function (server) {
-  io = socketio(server);
+  io = socketio(server, {
+    connectionStateRecovery: {},
+  });
 
   // Run with client connects
   io.on("connection", function (socket) {
@@ -73,20 +80,13 @@ module.exports = function (server) {
     });
 
     socket.on("initialGoodCards", () => {
-      io.emit("displaySelectedCardsEvent", gameLogicVariables.goodPlayerCardList);
+      console.log("returning inital good cards");
+      const initialGoodCards = getInitialGoodCards();
+      io.emit("displaySelectedCardsEvent", initialGoodCards);
     });
 
     socket.on("selectGoodCard", (card) => {
-      if (gameLogicVariables.goodPlayerCardList.includes(card)) {
-        const index = gameLogicVariables.goodPlayerCardList.indexOf(card);
-        gameLogicVariables.goodPlayerCardList.splice(index, 1);
-      } else {
-        if (gameLogicVariables.goodPlayerCardList.length < 2) {
-          gameLogicVariables.goodPlayerCardList.push(card);
-        } else {
-        }
-      }
-      io.emit("displaySelectedCardsEvent", gameLogicVariables.goodPlayerCardList);
+      processSelectGoodCard(card, io);
     });
 
     socket.on("restartGame", () => {

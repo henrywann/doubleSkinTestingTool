@@ -556,6 +556,25 @@ function playerAction(playerId, action) {
   }
 }
 
+function getThisRoundAction(thisRound, action, playerId) {
+  if (action === "kill") {
+    thisRound.killed = playerId;
+  } else if (action === "check") {
+    thisRound.checked = playerId;
+  } else if (action === "gun") {
+    thisRound.gunned = playerId;
+  } else if (action === "inject") {
+    thisRound.injected = playerId;
+  } else if (action === "silence") {
+    thisRound.silenced = playerId;
+  } else if (action === "revenge") {
+    thisRound.revenged = playerId;
+  } else if (action === "release") {
+    thisRound.poisonReleased = playerId;
+  }
+  return thisRound;
+}
+
 function getRoleCount(card) {
   var count = 0;
   for (i = 0; i < getAlivePlayers().length; i++) {
