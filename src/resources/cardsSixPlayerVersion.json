@@ -1,0 +1,30 @@
+{
+  "cards": [
+    "killer",
+    "killer",
+    "police",
+    "police",
+    "doctor",
+    "gunSmith",
+    "villager",
+    "villager",
+    "villager",
+    "villager",
+    "villager",
+    "villager"
+  ],
+  "cardsChinese": [
+    "杀手",
+    "杀手",
+    "警察",
+    "警察",
+    "医生",
+    "Gun Smith",
+    "平民",
+    "平民",
+    "平民",
+    "平民",
+    "平民",
+    "平民"
+  ]
+}

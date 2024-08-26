@@ -18,7 +18,7 @@ socket.on("connect", () => {
     console.log(socket.id);
   });
 // Join Game
-socket.emit('joinGame', ({ 
+socket.emit('joinGame', (joinGame = { 
     username: username,
     numOfPlayers: numOfPlayers,
     badIdentities: badIdentities,
