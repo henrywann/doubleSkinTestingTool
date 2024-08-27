@@ -1,21 +1,10 @@
 const socketio = require("socket.io");
 var io;
 
-var gameLogicVariables = require("../repositories/gameLogicRepository");
-
-var inGameLogicVariables = require("../repositories/ingameLogicRepository");
-
-var votingLogicVariables = require("../repositories/votingLogicRepository");
-
-const { resetGameLogicVariables } = require("../repositories/gameLogicRepository");
-
-const { resetInGameLogicVariables } = require("../repositories/ingameLogicRepository");
-
-const { resetVotingLogicVariables } = require("../repositories/votingLogicRepository");
-
 const { initAlivePlayers, getAlivePlayers } = require("../models/alivePlayers");
 
 const {
+  resetPreGameLogicVariables,
   processJoinGame,
   processPlayerReady,
   processSelectGoodCard,
@@ -23,40 +12,21 @@ const {
 } = require("../services/pregameService");
 
 const {
+  proceedToNextNight,
+  resetAllGameLogicVariables,
+  getRound,
   playerAction,
   isRoundOver,
   roundOverAction,
   getRoleCount,
   noPlayerAction,
+  processChooseRevenge,
+  processReleasePoison,
   processGunPlayer,
+  isFirstRoundVoting,
   processIncreaseVote,
   processVoteNo,
 } = require("../services/inGameService");
-
-// const {
-//     processJoinGame,
-// } = require("../services/pregameService");
-
-// function resetGlobalVariablesForNewGame() {
-//   playerLength = 0;
-//   round = 0;
-//   voteblePlayers = [];
-//   allPlayers = [];
-//   playersThatVoted = 0;
-//   whoVotedWho = [];
-//   isFirstRoundVoting = true;
-//   playersWithMostVotes = [];
-//   pkPlayer = [];
-//   isPureVillagerExists = false;
-//   isGunSmithFired = false;
-//   isNewGame = true;
-//   gunablePlayers = [];
-//   gunnedPlayerDuringVoting = -1;
-//   revengeChosen = -1;
-//   revengeCard = -1;
-//   noKillerPresent = false;
-//   poisonReleasedRound = 0;
-// }
 
 module.exports = function (server) {
   io = socketio(server, {
@@ -76,7 +46,10 @@ module.exports = function (server) {
     });
 
     socket.on("playerReady", (currentPlayer) => {
-      processPlayerReady(currentPlayer, socket, io);
+      var isReadyToStartGame = processPlayerReady(currentPlayer, socket, io);
+      if (isReadyToStartGame) {
+        proceedToNextNight(io);
+      }
     });
 
     socket.on("initialGoodCards", () => {
@@ -90,18 +63,16 @@ module.exports = function (server) {
     });
 
     socket.on("restartGame", () => {
-      resetGameLogicVariables();
-      resetInGameLogicVariables();
-      resetVotingLogicVariables();
-      //   resetGlobalVariablesForNewGame();
+      resetAllGameLogicVariables();
+      resetPreGameLogicVariables();
       io.emit("restartGameForAll");
     });
 
     socket.on("chooseRevenge", ({ playerId, cardId }) => {
-      inGameLogicVariables.revengeChosen = playerId;
-      inGameLogicVariables.revengeCard = cardId;
-      playerAction(playerId, "revenge");
+      processChooseRevenge(playerId, cardId);
+
       io.emit("completeRevengeAction", { playerId, cardId });
+
       if (isRoundOver()) {
         roundOverAction(io);
       }
@@ -111,7 +82,7 @@ module.exports = function (server) {
       io.emit("verifyKill", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
       });
     });
 
@@ -119,7 +90,7 @@ module.exports = function (server) {
       var killerCount = getRoleCount("killer");
       io.emit("killerAction", {
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
         killerCount: killerCount,
       });
     });
@@ -129,7 +100,7 @@ module.exports = function (server) {
       io.emit("killComplete", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
       });
       if (isRoundOver()) {
         roundOverAction(io);
@@ -137,19 +108,14 @@ module.exports = function (server) {
     });
 
     socket.on("releasePoison", (playerId) => {
-      console.log("received bioChemist action");
-      console.log(`poison released on playerId ${playerId} ${typeof playerId}`);
-      console.log(`poison released round is ${inGameLogicVariables.poisonReleasedRound}`);
-      playerAction(playerId, "release");
-      if (playerId !== "0") {
-        console.log("poisoned player is not 0, assigning poisonReleasedRound to current round");
-        inGameLogicVariables.poisonReleasedRound = inGameLogicVariables.round;
-      }
+      processReleasePoison(playerId);
+
       io.emit("poisonReleaseComplete", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
       });
+
       if (isRoundOver()) {
         roundOverAction(io);
       }
@@ -159,7 +125,7 @@ module.exports = function (server) {
       io.emit("verifyCheck", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
       });
     });
 
@@ -167,7 +133,7 @@ module.exports = function (server) {
       var policeCount = getRoleCount("police");
       io.emit("policeAction", {
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
         policeCount: policeCount,
       });
     });
@@ -177,7 +143,7 @@ module.exports = function (server) {
       io.emit("checkComplete", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
       });
       if (isRoundOver()) {
         roundOverAction(io);
@@ -189,7 +155,7 @@ module.exports = function (server) {
       io.emit("injectComplete", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
       });
       if (isRoundOver()) {
         roundOverAction(io);
@@ -203,14 +169,14 @@ module.exports = function (server) {
     socket.on("silencePlayer", (playerId) => {
       console.log(`silenced playerId type: ${typeof playerId}`);
       if (playerId === "0") {
-        noPlayerAction("silence", inGameLogicVariables.round);
+        noPlayerAction("silence");
       } else {
         playerAction(playerId, "silence");
       }
       io.emit("silenceComplete", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
       });
       if (isRoundOver()) {
         roundOverAction(io);
@@ -238,7 +204,7 @@ module.exports = function (server) {
       io.emit("voteComplete", {
         currentPlayer: currentPlayerId,
         round: round,
-        isFirstRoundVoting: votingLogicVariables.isFirstRoundVoting,
+        isFirstRoundVoting: isFirstRoundVoting(),
         playerBeingVoted: votedPlayer,
       });
 
@@ -252,7 +218,7 @@ module.exports = function (server) {
     socket.on("gunSmithVotingRoundFire", (response) => {
       io.emit("gunSmithAction", {
         alivePlayers: getAlivePlayers(),
-        round: inGameLogicVariables.round,
+        round: getRound(),
         isVotingRound: true,
       });
     });

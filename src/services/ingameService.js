@@ -1,26 +1,45 @@
-var inGameLogicVariables = require("../repositories/ingameLogicRepository");
-var votingLogicVariables = require("../repositories/votingLogicRepository");
-var gameLogicVariables = require("../repositories/gameLogicRepository");
+const InGameLogicVariables = require("../repositories/ingameLogicRepository");
+var inGameLogicVariables = new InGameLogicVariables();
 
-const { resetGameLogicVariables } = require("../repositories/gameLogicRepository");
+// const GameLogicVariables = require("../repositories/gameLogicRepository");
+// var gameLogicVariables = new GameLogicVariables();
 
-const { resetInGameLogicVariables } = require("../repositories/ingameLogicRepository");
-
-const { resetVotingLogicVariables } = require("../repositories/votingLogicRepository");
+const VotingLogicVariables = require("../repositories/votingLogicRepository");
+var votingLogicVariables = new VotingLogicVariables();
 
 const {
   initAlivePlayers,
   getAlivePlayers,
   sortAlivePlayers,
-  setAlivePlayers,
+  filteringOutDeadPlayers,
 } = require("../models/alivePlayers");
+
+const {
+  resetPreGameLogicVariables,
+  getGameLogicVariables,
+} = require("../services/pregameService");
 
 const isSideKillFlag = true;
 
+function resetAllGameLogicVariables() {
+  inGameLogicVariables = new InGameLogicVariables();
+  resetPreGameLogicVariables();
+  votingLogicVariables = new VotingLogicVariables();
+}
+
+function getRound() {
+  return inGameLogicVariables.round;
+}
+
 function proceedToNextNight(io) {
   console.log("proceeding to next round");
-  // clearing variables for current night
-  resetInGameLogicVariables();
+  // clearing card counts for current night
+  inGameLogicVariables.killerCount = 0;
+  inGameLogicVariables.silencerCount = 0;
+  inGameLogicVariables.policeCount = 0;
+  inGameLogicVariables.doctorCount = 0;
+  inGameLogicVariables.gunSmithCount = 0;
+  inGameLogicVariables.bioChemistCount = 0;
   var i;
   for (i = 0; i < getAlivePlayers().length; i++) {
     const currentPlayer = getAlivePlayers()[i];
@@ -33,25 +52,27 @@ function proceedToNextNight(io) {
     else if (role === "bioChemist") inGameLogicVariables.bioChemistCount++;
   }
 
+  // console.log("Updating current card, getAlivePlayers: ", getAlivePlayers());
   io.emit("updateCurrentCard", getAlivePlayers());
   // Increasing round count and reseting all voting related global variables
   inGameLogicVariables.round++;
-  resetVotingLogicVariables();
+  votingLogicVariables = new VotingLogicVariables();
 
   io.emit("message", `天黑请闭眼...第${inGameLogicVariables.round}夜!`);
-  console.log(`badGuysCombination: ${gameLogicVariables.badGuysCombination}`);
+  console.log(`badGuysCombination: ${getGameLogicVariables().badGuysCombination}`);
   console.log(`biochemist count: ${inGameLogicVariables.bioChemistCount}`);
   console.log(`poisonReleasedRound during night: ${inGameLogicVariables.poisonReleasedRound}`);
 
-  if (gameLogicVariables.badGuysCombination === "1") {
+  if (getGameLogicVariables().badGuysCombination === "1") {
     if (inGameLogicVariables.round === 1) {
       io.emit("revengerAction");
     }
-  } else if (gameLogicVariables.badGuysCombination === "2") {
+  } else if (getGameLogicVariables().badGuysCombination === "2") {
     // bioChemist only able to use ability 2 rounds after first release, and can only use ability twice
     if (
       inGameLogicVariables.round === 1 ||
-      inGameLogicVariables.round > inGameLogicVariables.poisonReleasedRound + 1
+      (inGameLogicVariables.numberOfPoinsonReleased < 2 &&
+        inGameLogicVariables.round > inGameLogicVariables.poisonReleasedRound + 1)
     ) {
       console.log("current round is greater than poisonReleasedRound+1");
       console.log(`biochemist count: ${inGameLogicVariables.bioChemistCount}`);
@@ -63,10 +84,10 @@ function proceedToNextNight(io) {
           bioChemistCount: inGameLogicVariables.bioChemistCount,
         });
       } else {
-        noPlayerAction("release", inGameLogicVariables.round);
+        noPlayerAction("release");
       }
     } else {
-      noPlayerAction("release", inGameLogicVariables.round);
+      noPlayerAction("release");
     }
   }
 
@@ -76,19 +97,19 @@ function proceedToNextNight(io) {
       round: inGameLogicVariables.round,
     });
   } else {
-    noPlayerAction("silence", inGameLogicVariables.round);
+    noPlayerAction("silence");
   }
 
   if (inGameLogicVariables.killerCount > 0) {
     inGameLogicVariables.noKillerPresent = false;
     io.emit("killerAction", {
       alivePlayers: getAlivePlayers(),
-      round: round,
+      round: inGameLogicVariables.round,
       killerCount: inGameLogicVariables.killerCount,
     });
   } else {
     inGameLogicVariables.noKillerPresent = true;
-    noPlayerAction("kill", inGameLogicVariables.round);
+    noPlayerAction("kill");
   }
 
   if (inGameLogicVariables.policeCount > 0) {
@@ -98,7 +119,7 @@ function proceedToNextNight(io) {
       policeCount: inGameLogicVariables.policeCount,
     });
   } else {
-    noPlayerAction("check", inGameLogicVariables.round);
+    noPlayerAction("check");
   }
 
   if (inGameLogicVariables.doctorCount > 0) {
@@ -107,7 +128,7 @@ function proceedToNextNight(io) {
       round: inGameLogicVariables.round,
     });
   } else {
-    noPlayerAction("inject", inGameLogicVariables.round);
+    noPlayerAction("inject");
   }
 
   if (inGameLogicVariables.gunSmithCount > 0 && !inGameLogicVariables.isGunSmithFired) {
@@ -117,10 +138,11 @@ function proceedToNextNight(io) {
       isVotingRound: false,
     });
   } else {
-    noPlayerAction("gun", inGameLogicVariables.round);
+    noPlayerAction("gun");
   }
 
   if (isRoundOver()) {
+    console.log('Night roung is over');
     roundOverAction(inGameLogicVariables.round, io);
   }
 }
@@ -164,12 +186,15 @@ function updateSocketRoomRole(currentPlayer) {
   }
 }
 
-function noPlayerAction(action, round) {
-  if (inGameLogicVariables.roundAction[round - 1] == undefined) {
+function noPlayerAction(action) {
+  if (inGameLogicVariables.roundAction[inGameLogicVariables.round - 1] == undefined) {
     inGameLogicVariables.roundAction.push(getThisRoundNoAction(initializeThisRound(), action));
   } else {
-    var thisRound = inGameLogicVariables.roundAction[round - 1];
-    inGameLogicVariables.roundAction[round - 1] = getThisRoundNoAction(thisRound, action);
+    var thisRound = inGameLogicVariables.roundAction[inGameLogicVariables.round - 1];
+    inGameLogicVariables.roundAction[inGameLogicVariables.round - 1] = getThisRoundNoAction(
+      thisRound,
+      action
+    );
   }
 }
 
@@ -177,17 +202,17 @@ function noPlayerAction(action, round) {
 // Initialize player actions for current night round
 function initializeThisRound() {
   var thisRound = [];
-  if (gameLogicVariables.badGuysCombination === "0") {
+  if (getGameLogicVariables().badGuysCombination === "0") {
     // 6 players
     thisRound = { killed: -1, checked: -1, gunned: -1, injected: -1, silenced: -1 };
-  } else if (gameLogicVariables.badGuysCombination === "1") {
+  } else if (getGameLogicVariables().badGuysCombination === "1") {
     // 7 players: killer, revenger, silencer
     if (inGameLogicVariables.round === 1) {
       thisRound = { killed: -1, checked: -1, gunned: -1, injected: -1, silenced: -1, revenged: -1 };
     } else {
       thisRound = { killed: -1, checked: -1, gunned: -1, injected: -1, silenced: -1 };
     }
-  } else if (gameLogicVariables.badGuysCombination === "2") {
+  } else if (getGameLogicVariables().badGuysCombination === "2") {
     // 7 players: killer, bioChem, silencer
     thisRound = {
       killed: -1,
@@ -199,6 +224,7 @@ function initializeThisRound() {
     };
   } else {
     console.error("globalBadIdentities is not valid!!!");
+    console.log("gameLogicVariables: ", getGameLogicVariables());
   }
   return thisRound;
 }
@@ -228,8 +254,8 @@ function isRoundOver() {
   }
   // TODO; need to dynamically check if all the actions are performed based on the cards selected
   if (
-    gameLogicVariables.badGuysCombination === "0" ||
-    gameLogicVariables.badGuysCombination === "1"
+    getGameLogicVariables().badGuysCombination === "0" ||
+    getGameLogicVariables().badGuysCombination === "1"
   ) {
     // 6 players, or 7 players with revenger
     if (
@@ -241,8 +267,9 @@ function isRoundOver() {
     ) {
       console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
         gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}`);
-      if (inGameLogicVariables.round === 1) {
+      if (inGameLogicVariables.round === 1 && getGameLogicVariables().playerLength === "7") {
         console.log(`revenged: ${currentRound.revenged}`);
+        // console.log('round over condition: ', currentRound.revenged !== -1);
         return currentRound.revenged !== -1;
       } else {
         return true;
@@ -250,7 +277,7 @@ function isRoundOver() {
     } else {
       return false;
     }
-  } else if (gameLogicVariables.badGuysCombination === "2") {
+  } else if (getGameLogicVariables().badGuysCombination === "2") {
     // 7 players with bioChemist
     if (
       currentRound.killed !== -1 &&
@@ -294,7 +321,8 @@ function roundOverAction(io) {
         }
       });
 
-      updateExistingPlayers();
+      filteringOutDeadPlayers();
+      // updateExistingPlayers();
 
       var deadPlayerMessage = "";
       if (deadPlayers.length === 0) {
@@ -322,20 +350,16 @@ function roundOverAction(io) {
 
       if (isBadGuysWon()) {
         io.emit("message", "游戏结束！坏人胜利！");
-        resetGameLogicVariables();
-        resetInGameLogicVariables();
-        resetVotingLogicVariables();
+        resetAllGameLogicVariables();
       } else if (isGoodGuysWon()) {
         io.emit("message", "游戏结束！好人胜利！");
-        resetGameLogicVariables();
-        resetInGameLogicVariables();
-        resetVotingLogicVariables();
+        resetAllGameLogicVariables();
       } else {
         // voteblePlayers consists elements of playerId and alreadyVoted flag
-        inGameLogicVariables.voteblePlayers = getVotePlayers(deadPlayers);
+        votingLogicVariables.voteblePlayers = getVotePlayers(deadPlayers);
         inGameLogicVariables.gunablePlayers = [];
-        for (var i = 0; i < inGameLogicVariables.voteblePlayers.length; i++) {
-          const playerId = parseInt(inGameLogicVariables.voteblePlayers[i].playerId) - 1;
+        for (var i = 0; i < votingLogicVariables.voteblePlayers.length; i++) {
+          const playerId = parseInt(votingLogicVariables.voteblePlayers[i].playerId) - 1;
           const curPlayer = { playerId };
           inGameLogicVariables.gunablePlayers.push(curPlayer);
         }
@@ -365,9 +389,9 @@ function roundOverAction(io) {
         // console.log(`votablePlayers: ${JSON.stringify(gunablePlayers, null, 4)}`);
 
         io.emit("votePlayer", {
-          voteThisPlayer: inGameLogicVariables.voteblePlayers[0],
+          voteThisPlayer: votingLogicVariables.voteblePlayers[0],
           voteIndex: 0,
-          voteblePlayers: inGameLogicVariables.voteblePlayers,
+          voteblePlayers: votingLogicVariables.voteblePlayers,
           round: inGameLogicVariables.round,
           isFirstRoundVoting: votingLogicVariables.isFirstRoundVoting,
         });
@@ -466,12 +490,13 @@ function activateRevenager() {
   console.log(`after activeate revenger: ${JSON.stringify(getAlivePlayers(), null, 4)}`);
 }
 
-function updateExistingPlayers() {
-  var filtered = getAlivePlayers().filter(function (value) {
-    return value.card2 !== "";
-  });
-  setAlivePlayers(filtered);
-}
+// function updateExistingPlayers() {
+//   var filtered = getAlivePlayers().filter(function (value) {
+//     return value.card2 !== "";
+//   });
+//   getAlivePlayers() = filtered;
+//   // setAlivePlayers(filtered);
+// }
 
 function isBadGuysWon() {
   var pureVillagerExists = false;
@@ -485,7 +510,7 @@ function isBadGuysWon() {
     }
   });
   if (isSideKillFlag) {
-    return (!pureVillagerExists && gameLogicVariables.isPureVillagerExists) || !godExists;
+    return (!pureVillagerExists && getGameLogicVariables().isPureVillagerExists) || !godExists;
   } else {
     return !godExists && !pureVillagerExists;
   }
@@ -588,6 +613,24 @@ function getRoleCount(card) {
   return count;
 }
 
+function processChooseRevenge(playerId, cardId) {
+  inGameLogicVariables.revengeChosen = playerId;
+  inGameLogicVariables.revengeCard = cardId;
+  playerAction(playerId, "revenge");
+}
+
+function processReleasePoison(playerId) {
+  console.log("received bioChemist action");
+  console.log(`poison released on playerId ${playerId} ${typeof playerId}`);
+  console.log(`poison released round is ${inGameLogicVariables.poisonReleasedRound}`);
+  playerAction(playerId, "release");
+  if (playerId !== "0") {
+    console.log("poisoned player is not 0, assigning poisonReleasedRound to current round");
+    inGameLogicVariables.poisonReleasedRound = inGameLogicVariables.round;
+    inGameLogicVariables.numberOfPoinsonReleased++;
+  }
+}
+
 function processGunPlayer(playerId, isVotingRound, io) {
   console.log(`gun playerId type: ${typeof playerId}`);
   console.log(`gun playerId: ${playerId}`);
@@ -595,7 +638,7 @@ function processGunPlayer(playerId, isVotingRound, io) {
 
   if (playerId === "0") {
     inGameLogicVariables.isGunSmithFired = false;
-    noPlayerAction("gun", inGameLogicVariables.round);
+    noPlayerAction("gun");
   } else {
     inGameLogicVariables.isGunSmithFired = true;
     if (isVotingRound) {
@@ -622,7 +665,9 @@ function processGunPlayer(playerId, isVotingRound, io) {
           }
         });
       }
-      updateExistingPlayers();
+      filteringOutDeadPlayers();
+      // updateExistingPlayers();
+      console.log('alivePlayers after updating', getAlivePlayers());
       io.emit("roomUsers", getAlivePlayers());
     } else {
       playerAction(playerId, "gun");
@@ -636,16 +681,12 @@ function processGunPlayer(playerId, isVotingRound, io) {
   if (isVotingRound) {
     if (isBadGuysWon()) {
       io.emit("message", "游戏结束！坏人胜利！");
-      resetGameLogicVariables();
-      resetInGameLogicVariables();
-      resetVotingLogicVariables();
+      resetAllGameLogicVariables();
     } else if (isGoodGuysWon()) {
       io.emit("message", "游戏结束！好人胜利！");
-      resetGameLogicVariables();
-      resetInGameLogicVariables();
-      resetVotingLogicVariables();
+      resetAllGameLogicVariables();
     } else {
-      proceedToNextNight();
+      proceedToNextNight(io);
     }
   } else {
     if (isRoundOver()) {
@@ -672,6 +713,10 @@ function processIncreaseVote(votedPlayer, currentPlayerId, voteIndex, io) {
   voteComplete(voteIndex, io);
 }
 
+function isFirstRoundVoting() {
+  return votingLogicVariables.isFirstRoundVoting;
+}
+
 function processVoteNo(voteIndex, playerId, io) {
   const playerBeingVoted = votingLogicVariables.isFirstRoundVoting
     ? votingLogicVariables.voteblePlayers[parseInt(voteIndex)].playerId
@@ -687,13 +732,20 @@ function processVoteNo(voteIndex, playerId, io) {
 }
 
 function voteComplete(voteIndex, io) {
+  console.log("entering voteComplete");
+  console.log("printing current votingLogicVariables: ", votingLogicVariables);
   votingLogicVariables.playersThatVoted++;
   if (votingLogicVariables.playersThatVoted === votingLogicVariables.voteblePlayers.length) {
     var curPlayer = votingLogicVariables.isFirstRoundVoting
       ? votingLogicVariables.voteblePlayers[parseInt(voteIndex)].playerId
       : votingLogicVariables.playersWithMostVotes[parseInt(voteIndex)].playerId;
-    if (votingLogicVariables.whoVotedWho.length === 0) io.emit("message", `没人投玩家${curPlayer}`);
-    else io.emit("message", `玩家：${votingLogicVariables.whoVotedWho}投了玩家${curPlayer}`);
+
+    if (votingLogicVariables.whoVotedWho.length === 0) {
+      io.emit("message", `没人投玩家${curPlayer}`);
+    } else {
+      io.emit("message", `玩家：${votingLogicVariables.whoVotedWho}投了玩家${curPlayer}`);
+    }
+
     votingLogicVariables.playersThatVoted = 0;
     console.log(`voteIndex: ${voteIndex}`);
     if (
@@ -768,9 +820,11 @@ function voteComplete(voteIndex, io) {
               }
             });
           }
-          updateExistingPlayers();
+          filteringOutDeadPlayers();
+          // updateExistingPlayers();
         });
         var votedOutPlayersMsg = [];
+
         console.log(`voted out player length: ${votingLogicVariables.playersWithMostVotes.length}`);
         votingLogicVariables.playersWithMostVotes.forEach((e) => {
           votedOutPlayersMsg.push(e.playerId);
@@ -778,17 +832,13 @@ function voteComplete(voteIndex, io) {
         io.emit("message", `玩家${votedOutPlayersMsg}被投票出局！`);
         if (isBadGuysWon()) {
           io.emit("message", "游戏结束！坏人胜利！");
-          resetGameLogicVariables();
-          resetInGameLogicVariables();
-          resetVotingLogicVariables();
+          resetAllGameLogicVariables();
         } else if (isGoodGuysWon()) {
           io.emit("message", "游戏结束！好人胜利！");
-          resetGameLogicVariables();
-          resetInGameLogicVariables();
-          resetVotingLogicVariables();
+          resetAllGameLogicVariables();
         } else {
           io.emit("roomUsers", getAlivePlayers());
-          proceedToNextNight();
+          proceedToNextNight(io);
         }
       }
     } else {
@@ -810,13 +860,18 @@ function voteComplete(voteIndex, io) {
 }
 
 module.exports = {
+  resetAllGameLogicVariables,
+  getRound,
   proceedToNextNight,
   playerAction,
   noPlayerAction,
   isRoundOver,
   roundOverAction,
   getRoleCount,
+  processChooseRevenge,
+  processReleasePoison,
   processGunPlayer,
+  isFirstRoundVoting,
   processIncreaseVote,
   processVoteNo,
 };

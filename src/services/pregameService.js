@@ -6,25 +6,24 @@ const {
   sortAlivePlayers,
 } = require("../models/alivePlayers");
 
-const { initRoundAction, getRoundAction } = require("../models/roundActions");
-
 const { initPlayers, getPlayers } = require("../models/players");
 
 const { initAllPlayers, getAllPlayers } = require("../models/allPlayers");
 
-const { proceedToNextNight } = require("../services/inGameService");
-
-const { resetInGameLogicVariables } = require("../repositories/ingameLogicRepository");
-
-// var gameLogicVariables = require("../repositories/gameLogicRepository");
-
 const GameLogicVariables = require('../repositories/gameLogicRepository');
+var gameLogicVariables = new GameLogicVariables();
 
 // Declaring global variables
 var cards = []; // TODO: need to move this to model or repository layer
 var cardsChinese = [];
 
-var gameLogicVariables = new GameLogicVariables();
+function getGameLogicVariables() {
+  return gameLogicVariables;
+}
+
+function resetPreGameLogicVariables() {
+  gameLogicVariables = new GameLogicVariables();
+}
 
 function getInitialGoodCards() {
   return gameLogicVariables.goodPlayerCardList;
@@ -198,7 +197,7 @@ function getPlayerSide(card1, card2) {
 }
 
 function processPlayerReady(currentPlayer, socket, io) {
-  playerReady(socket.id, currentPlayer);
+  playerReady(currentPlayer);
 
   getAllPlayers().forEach((e) => {
     if (e.id === currentPlayer.id) e.isReady = true;
@@ -212,8 +211,9 @@ function processPlayerReady(currentPlayer, socket, io) {
         gameLogicVariables.isPureVillagerExists = true;
       }
     });
-    proceedToNextNight(io);
+    return true;
   }
+  return false;
 }
 
 function playerReady(currentPlayer) {
@@ -222,6 +222,8 @@ function playerReady(currentPlayer) {
 }
 
 module.exports = {
+  getGameLogicVariables,
+  resetPreGameLogicVariables,
   processJoinGame,
   processPlayerReady,
   processSelectGoodCard,

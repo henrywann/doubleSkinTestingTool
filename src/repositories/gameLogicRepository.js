@@ -1,27 +1,8 @@
-// let gameLogicVariables = {
-//   isPureVillagerExists: false,
-//   playerLength: "0",
-//   // 0: 6 players, 1: killer, revenger, silencer, 2: killer, bioChemist, sliencer
-//   badGuysCombination: 0,
-//   goodPlayerCardList: [],
-//   isNewGame: true,
-// };
-
-// function resetGameLogicVariables() {
-//   this.isPureVillagerExists = false;
-//   this.playerLength = "0";
-//   this.badGuysCombination = 0;
-//   this.goodPlayerCardList = [];
-//   this.isNewGame = true;
-// }
-
-// module.exports = { gameLogicVariables, resetGameLogicVariables };
-
 class GameLogicVariables {
   constructor() {
       this._isPureVillagerExists = false;
       this._playerLength = "0";
-      this._badGuysCombination = 0;
+      this._badGuysCombination = "0";
       this._goodPlayerCardList = [];
       this._isNewGame = true;
   }
@@ -56,10 +37,10 @@ class GameLogicVariables {
 
   // Setter for badGuysCombination
   set badGuysCombination(value) {
-      if (Number.isInteger(value)) {
-          this._badGuysCombination = value;
+      if (!isNaN(value)) {
+          this._badGuysCombination = value.toString();
       } else {
-          console.error('badGuysCombination should be an integer');
+          console.error('badGuysCombination should be a number or a string that can be converted to a number');
       }
   }
 

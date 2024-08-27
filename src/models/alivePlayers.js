@@ -1,15 +1,18 @@
-var alivePlayers = [];
+let alivePlayers = [];
 
 function initAlivePlayers() {
   alivePlayers = [];
 }
 
 function getAlivePlayers() {
-  return alivePlayers;
+    return alivePlayers;
 }
 
-function setAlivePlayers(alivePlayers) {
-  this.alivePlayers = alivePlayers;
+function filteringOutDeadPlayers() {
+    var filtered = getAlivePlayers().filter(function (value) {
+        return value.card2 !== "";
+    });
+    alivePlayers = filtered; // Update the variable directly
 }
 
 function sortAlivePlayers() {
@@ -20,5 +23,5 @@ module.exports = {
   initAlivePlayers,
   getAlivePlayers,
   sortAlivePlayers,
-  setAlivePlayers,
+  filteringOutDeadPlayers,
 };
