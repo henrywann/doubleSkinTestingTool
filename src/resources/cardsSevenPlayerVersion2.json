@@ -1,0 +1,34 @@
+{
+  "cards": [
+    "police",
+    "police",
+    "villager",
+    "villager",
+    "villager",
+    "villager",
+    "villager",
+    "villager",
+    "villager",
+    "killer",
+    "bioChemist",
+    "silencer",
+    "gunSmith",
+    "doctor"
+  ],
+  "cardsChinese": [
+    "警察",
+    "警察",
+    "平民",
+    "平民",
+    "平民",
+    "平民",
+    "平民",
+    "平民",
+    "平民",
+    "杀手",
+    "生化学家",
+    "禁言",
+    "Gun Smith",
+    "医生"
+  ]
+}

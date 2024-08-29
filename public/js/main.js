@@ -11,20 +11,41 @@ ready.addEventListener("click", readyToPlay);
 const restart = document.getElementById("restartBtn");
 restart.addEventListener("click", restartGame);
 
-const { username, numOfPlayers } = Qs.parse(location.search, {
+const { username, numOfPlayers, badIdentities } = Qs.parse(location.search, {
   ignoreQueryPrefix: true
 });
 socket.on("connect", () => {
     console.log(socket.id);
   });
 // Join Game
-socket.emit('joinGame', ({ 
+socket.emit('joinGame', (joinGame = { 
     username: username,
     numOfPlayers: numOfPlayers,
+    badIdentities: badIdentities,
     socketId: sessionStorage.getItem("socketId"),
     state: sessionStorage.getItem("state"),
     voteIndex: sessionStorage.getItem("voteIndex")
  }));
+
+ socket.on('revengerAction', () => {
+    if (sessionStorage.getItem("isRevenger")==='true') {
+        outputRevengerSelection();
+    }
+ });
+
+ socket.on('completeRevengeAction', ({playerId, cardId}) => {
+     console.log(`playerId: ${playerId}`);
+    if (sessionStorage.getItem("isRevenger")==='true') {
+        for (var i=0; i<7; i++) {
+            document.getElementById(`revenge${i+1}-card1`).disabled = true;
+            document.getElementById(`revenge${i+1}-card2`).disabled = true;
+        }
+    }
+    if (sessionStorage.getItem("playerId")===playerId.toString()) {
+        const message = `您的第${cardId}张牌被复仇者选中！`;
+        outputMessage(message);
+    }
+ });
 
  socket.on('restartGameForAll', () => {
     sessionStorage.clear();
@@ -45,13 +66,13 @@ socket.on('playerReadyCheckmark', (allPlayers) => {
 
 // Displays player typed messages
 socket.on('playerChatmessage', ({message, playername, playerId}) => {
-    console.log(`Incoming message: ${message} ${playername} ${playerId}`);
+    // console.log(`Incoming message: ${message} ${playername} ${playerId}`);
     outputPlayerChatMessage(message, playername, playerId);
 });
 
 // Displays game messages
 socket.on('message', message => {
-    console.log(`Incoming message: ${message}`);
+    // console.log(`Incoming message: ${message}`);
     outputMessage(message);
 });
 
@@ -68,6 +89,14 @@ socket.on('killerAction', ({alivePlayers, round, killerCount}) => {
         sessionStorage.setItem("state", "killerAction");
         sessionStorage.setItem("isInitiatingKill", false);
         outputKillerSelection(alivePlayers, round, killerCount);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+});
+
+socket.on('bioChemistAction', ({alivePlayers, round, bioChemistCount}) => {
+    if (sessionStorage.getItem("currentCard")==="bioChemist") {
+        sessionStorage.setItem("state", "bioChemistAction");
+        outputBioChemistSelection(alivePlayers, round, bioChemistCount);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 });
@@ -106,11 +135,16 @@ socket.on('verifyKill', ({playerId, alivePlayers, round}) => {
 });
 
 socket.on('verifyCheck', ({playerId, alivePlayers, round}) => {
-    if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
+    if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("playerId") !== playerId) {
         sessionStorage.setItem("state", "policeVerify");
         outputVerifyCheck(playerId, alivePlayers, round);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+    // if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
+    //     sessionStorage.setItem("state", "policeVerify");
+    //     outputVerifyCheck(playerId, alivePlayers, round);
+    //     chatMessages.scrollTop = chatMessages.scrollHeight;
+    // }
 });
 
 socket.on('gunComplete', ({playerId, alivePlayers, round}) => {
@@ -135,6 +169,20 @@ socket.on('injectComplete', ({playerId, alivePlayers, round}) => {
             document.getElementById(`doctor${e.playerId+1}-${round}`).disabled = true;
         });
         outputMessage(`玩家${playerId}被扎了!`)
+    }
+});
+
+socket.on('poisonReleaseComplete', ({playerId, alivePlayers, round}) => {
+    if (sessionStorage.getItem("currentCard")==="bioChemist") {
+        sessionStorage.setItem("state", "releaseComplete");
+        alivePlayers.forEach(e => {
+            document.getElementById(`bioChemist${e.playerId+1}-${round}`).disabled = true;
+        });
+        var noReleaseBtn = document.getElementById(`noRelease-${round}`);
+        noReleaseBtn.disabled = true;
+        if (playerId!=='0') {
+            outputMessage(`玩家${playerId}被释放了毒气!并且毒气扩散到了左右玩家！`)
+        }
     }
 });
 
@@ -173,7 +221,7 @@ socket.on('checkComplete', ({playerId, alivePlayers, round}) => {
         alivePlayers.forEach(e => {
             if (e.playerId === playerId-1) {
                 const currentCard = e.card1 === '' ? e.card2: e.card1;
-                const currentId = currentCard==='killer' || currentCard ==='silencer'? '坏人': '好人';
+                const currentId = (currentCard==='killer' || currentCard ==='silencer' || currentCard === 'bioChemist') ? '坏人': '好人';
                 const message = `玩家${playerId}的目前身份是${currentId}`;
                 outputMessage(message);
             }
@@ -203,6 +251,10 @@ socket.on('updateCurrentCard', (alivePlayers) => {
         console.log(`playerId: ${typeof e.playerId} ${e.playerId}`);
         if ((e.playerId+1).toString()===sessionStorage.getItem("playerId")) {
             isPlayerAlive = true;
+            if ((sessionStorage.getItem("currentCard")==='revenger' && e.card1==='killer') || 
+                (sessionStorage.getItem("currentCard")==='revenger' && e.card1==='' && e.card2=='killer') ) {
+                sessionStorage.setItem("currentCard", 'killer');
+            }
             if (e.card1==='') {
                 console.log("card1 is empty, setting card2 to currentCard");
                 sessionStorage.setItem("currentCard", e.card2);
@@ -276,6 +328,25 @@ function outputIdentity(player) {
         sessionStorage.setItem("playerId", player.playerId+1);
         sessionStorage.setItem("socketId", player.id);
     }
+    if (player.card1==='revenger' || player.card2==='revenger') {
+        sessionStorage.setItem("isRevenger", true);
+        sessionStorage.setItem('isRevengerActivated', false);
+    }
+}
+
+function outputRevengerSelection() {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = `<p class="text">复仇者请选择<p>`;
+    for (var i=0; i<7; i++) {
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="revenge${i+1}-card1" onclick="revenge(${i+1}, 1)"> 玩家${i+1}身份1 </button>`);
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="revenge${i+1}-card2" onclick="revenge(${i+1}, 2)"> 玩家${i+1}身份2 </button>`);
+    }
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
+function revenge(playerId, cardId) {
+    socket.emit('chooseRevenge', ({playerId: playerId, cardId: cardId}));
 }
 
 function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {
@@ -303,6 +374,7 @@ function voteYes(player, round, isFirstRoundVoting) {
 }
 
 function voteNo(player, round, isFirstRoundVoting) {
+    console.log('clicked on voteNo');
     const voteIndex = sessionStorage.getItem("voteIndex");
     const playerId = sessionStorage.getItem("playerId");
     socket.emit('voteNo', {voteIndex: voteIndex, playerId: playerId.toString()});
@@ -402,6 +474,18 @@ function outputKillerSelection(alivePlayers, round, killerCount) {
     document.querySelector('.chat-messages').appendChild(div);
 }
 
+function outputBioChemistSelection(alivePlayers, round, bioChemistCount) {
+    const div = document.createElement('div');
+    div.classList.add('message');
+    div.innerHTML = '<p class="text">生化学家请放毒<p>';
+
+    alivePlayers.forEach(e =>{
+        div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="bioChemist${e.playerId+1}-${round}" onclick="releasePoison(${e.playerId+1})"> ${e.playerId+1} </button>`);
+    });
+    div.insertAdjacentHTML('beforeEnd', `<button class="actionBtn" id="noRelease-${round}" onclick="releasePoison(0)"> 不放毒 </button>`);
+    document.querySelector('.chat-messages').appendChild(div);
+}
+
 function getTeamMate(alivePlayers, count, card) {
     var teamMate = -1;
     if (count > 1) {
@@ -439,10 +523,15 @@ function checkPlayerRouter(playerId, policeCount) {
     }
 }
 
+/**
+ * 
+ * @param {*} playerId the playerId that is being checked
+ */
 function verifyCheckPlayer(playerId) {
-    sessionStorage.setItem("isInitiatingCheck", true);
+    // sessionStorage.setItem("isInitiatingCheck", true);
     outputMessage('等待队友确认...');
-    socket.emit('verifyCheckPlayer', playerId.toString());
+    const currentPlayerId = sessionStorage.getItem('playerId');
+    socket.emit('verifyCheckPlayer', currentPlayerId.toString());
 }
 
 function checkPlayer(checkedPlayerId) {
@@ -477,6 +566,10 @@ function gunPlayer(playerId, isVotingRound) {
 
 function silencePlayer(playerId) {
     socket.emit('silencePlayer', playerId.toString());
+}
+
+function releasePoison(playerId) {
+    socket.emit('releasePoison', playerId.toString());
 }
 
 function clickSwitchOrder() {
