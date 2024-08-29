@@ -17,6 +17,7 @@ class InGameLogicVariables {
     this._revengeCard = -1;
     this._gunablePlayers = [];
     this._isPoliceCheckingInProgress = false;
+    this._isKillerCheckingInProgress = false;
   }
 
   // Getter and Setter for killerCount
@@ -220,6 +221,18 @@ class InGameLogicVariables {
       this._isPoliceCheckingInProgress = value;
     } else {
       console.error("isPoliceCheckingInProgress should be a boolean");
+    }
+  }
+
+  // Getter and Setter for isKillerCheckingInProgress
+  get isKillerCheckingInProgress() {
+    return this._isKillerCheckingInProgress;
+  }
+  set isKillerCheckingInProgress(value) {
+    if (typeof value === "boolean") {
+      this._isKillerCheckingInProgresss = value;
+    } else {
+      console.error("isKillerCheckingInProgress should be a boolean");
     }
   }
 }

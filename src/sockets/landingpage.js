@@ -28,6 +28,8 @@ const {
   processVoteNo,
   processVerifyCheckPlayer,
   resetIsPoliceCheckingInProgress,
+  processVerifyKillerPlayer,
+  resetIsKillerCheckingInProgress,
 } = require("../services/ingameService");
 
 module.exports = function (server) {
@@ -81,11 +83,13 @@ module.exports = function (server) {
     });
 
     socket.on("verifyKillPlayer", (playerId) => {
-      io.emit("verifyKill", {
-        playerId: playerId,
-        alivePlayers: getAlivePlayers(),
-        round: getRound(),
-      });
+      if (processVerifyKillerPlayer()) {
+        io.emit("verifyKill", {
+          playerId: playerId,
+          alivePlayers: getAlivePlayers(),
+          round: getRound(),
+        });
+      }
     });
 
     socket.on("chooseKillAgain", (playerId) => {
@@ -95,6 +99,7 @@ module.exports = function (server) {
         round: getRound(),
         killerCount: killerCount,
       });
+      resetIsKillerCheckingInProgress();
     });
 
     socket.on("killPlayer", (playerId) => {
@@ -104,6 +109,7 @@ module.exports = function (server) {
         alivePlayers: getAlivePlayers(),
         round: getRound(),
       });
+      resetIsKillerCheckingInProgress();
       if (isRoundOver()) {
         roundOverAction(io);
       }
