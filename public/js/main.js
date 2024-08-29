@@ -18,7 +18,7 @@ socket.on("connect", () => {
     console.log(socket.id);
   });
 // Join Game
-socket.emit('joinGame', ({ 
+socket.emit('joinGame', (joinGame = { 
     username: username,
     numOfPlayers: numOfPlayers,
     badIdentities: badIdentities,
@@ -135,11 +135,16 @@ socket.on('verifyKill', ({playerId, alivePlayers, round}) => {
 });
 
 socket.on('verifyCheck', ({playerId, alivePlayers, round}) => {
-    if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
+    if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("playerId") !== playerId) {
         sessionStorage.setItem("state", "policeVerify");
         outputVerifyCheck(playerId, alivePlayers, round);
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
+    // if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
+    //     sessionStorage.setItem("state", "policeVerify");
+    //     outputVerifyCheck(playerId, alivePlayers, round);
+    //     chatMessages.scrollTop = chatMessages.scrollHeight;
+    // }
 });
 
 socket.on('gunComplete', ({playerId, alivePlayers, round}) => {
@@ -518,10 +523,15 @@ function checkPlayerRouter(playerId, policeCount) {
     }
 }
 
+/**
+ * 
+ * @param {*} playerId the playerId that is being checked
+ */
 function verifyCheckPlayer(playerId) {
-    sessionStorage.setItem("isInitiatingCheck", true);
+    // sessionStorage.setItem("isInitiatingCheck", true);
     outputMessage('等待队友确认...');
-    socket.emit('verifyCheckPlayer', playerId.toString());
+    const currentPlayerId = sessionStorage.getItem('playerId');
+    socket.emit('verifyCheckPlayer', currentPlayerId.toString());
 }
 
 function checkPlayer(checkedPlayerId) {
