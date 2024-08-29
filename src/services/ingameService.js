@@ -14,10 +14,7 @@ const {
   filteringOutDeadPlayers,
 } = require("../models/alivePlayers");
 
-const {
-  resetPreGameLogicVariables,
-  getGameLogicVariables,
-} = require("../services/pregameService");
+const { resetPreGameLogicVariables, getGameLogicVariables } = require("../services/pregameService");
 
 const isSideKillFlag = true;
 
@@ -142,7 +139,7 @@ function proceedToNextNight(io) {
   }
 
   if (isRoundOver()) {
-    console.log('Night roung is over');
+    console.log("Night roung is over");
     roundOverAction(inGameLogicVariables.round, io);
   }
 }
@@ -667,7 +664,7 @@ function processGunPlayer(playerId, isVotingRound, io) {
       }
       filteringOutDeadPlayers();
       // updateExistingPlayers();
-      console.log('alivePlayers after updating', getAlivePlayers());
+      console.log("alivePlayers after updating", getAlivePlayers());
       io.emit("roomUsers", getAlivePlayers());
     } else {
       playerAction(playerId, "gun");
@@ -715,6 +712,21 @@ function processIncreaseVote(votedPlayer, currentPlayerId, voteIndex, io) {
 
 function isFirstRoundVoting() {
   return votingLogicVariables.isFirstRoundVoting;
+}
+
+function processVerifyCheckPlayer() {
+  console.log("Processing VerifyCheckPlayer");
+  if (inGameLogicVariables.isPoliceCheckingInProgress) {
+    console.log('Police checking is ongoing...');
+    return false;
+  } else {
+    inGameLogicVariables.isPoliceCheckingInProgress = true;
+    return true;
+  }
+}
+
+function resetIsPoliceCheckingInProgress() {
+  inGameLogicVariables.isPoliceCheckingInProgress = false;
 }
 
 function processVoteNo(voteIndex, playerId, io) {
@@ -874,4 +886,6 @@ module.exports = {
   isFirstRoundVoting,
   processIncreaseVote,
   processVoteNo,
+  processVerifyCheckPlayer,
+  resetIsPoliceCheckingInProgress,
 };

@@ -26,6 +26,8 @@ const {
   isFirstRoundVoting,
   processIncreaseVote,
   processVoteNo,
+  processVerifyCheckPlayer,
+  resetIsPoliceCheckingInProgress,
 } = require("../services/inGameService");
 
 module.exports = function (server) {
@@ -122,11 +124,14 @@ module.exports = function (server) {
     });
 
     socket.on("verifyCheckPlayer", (playerId) => {
-      io.emit("verifyCheck", {
-        playerId: playerId,
-        alivePlayers: getAlivePlayers(),
-        round: getRound(),
-      });
+      console.log("verifyCheckPlayer, playerId that triggered this event: ", playerId);
+      if (processVerifyCheckPlayer()) {
+        io.emit("verifyCheck", {
+          playerId: playerId,
+          alivePlayers: getAlivePlayers(),
+          round: getRound(),
+        });
+      }
     });
 
     socket.on("chooseCheckAgain", (playerId) => {
@@ -136,6 +141,7 @@ module.exports = function (server) {
         round: getRound(),
         policeCount: policeCount,
       });
+      resetIsPoliceCheckingInProgress();
     });
 
     socket.on("checkPlayer", (playerId) => {
@@ -145,6 +151,7 @@ module.exports = function (server) {
         alivePlayers: getAlivePlayers(),
         round: getRound(),
       });
+      resetIsPoliceCheckingInProgress();
       if (isRoundOver()) {
         roundOverAction(io);
       }
