@@ -28,7 +28,7 @@ const {
   processVoteNo,
   processVerifyCheckPlayer,
   resetIsPoliceCheckingInProgress,
-} = require("../services/inGameService");
+} = require("../services/ingameService");
 
 module.exports = function (server) {
   io = socketio(server, {
