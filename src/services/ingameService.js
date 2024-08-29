@@ -717,7 +717,7 @@ function isFirstRoundVoting() {
 function processVerifyCheckPlayer() {
   console.log("Processing VerifyCheckPlayer");
   if (inGameLogicVariables.isPoliceCheckingInProgress) {
-    console.log('Police checking is ongoing...');
+    console.log("Police checking is ongoing...");
     return false;
   } else {
     inGameLogicVariables.isPoliceCheckingInProgress = true;
@@ -727,6 +727,21 @@ function processVerifyCheckPlayer() {
 
 function resetIsPoliceCheckingInProgress() {
   inGameLogicVariables.isPoliceCheckingInProgress = false;
+}
+
+function processVerifyKillerPlayer() {
+  console.log("Processing VerifyKillerPlayer");
+  if (inGameLogicVariables.isKillerCheckingInProgress) {
+    console.log("Killer checking is ongoing...");
+    return false;
+  } else {
+    inGameLogicVariables.isKillerCheckingInProgress = true;
+    return true;
+  }
+}
+
+function resetIsKillerCheckingInProgress() {
+  inGameLogicVariables.isKillerCheckingInProgress = false;
 }
 
 function processVoteNo(voteIndex, playerId, io) {
@@ -888,4 +903,6 @@ module.exports = {
   processVoteNo,
   processVerifyCheckPlayer,
   resetIsPoliceCheckingInProgress,
+  processVerifyKillerPlayer,
+  resetIsKillerCheckingInProgress,
 };
