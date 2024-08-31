@@ -2,7 +2,7 @@ class GameLogicVariables {
   constructor() {
       this._isPureVillagerExists = false;
       this._playerLength = "0";
-      this._badGuysCombination = "0";
+      this._badGuysCombination = "-1";
       this._goodPlayerCardList = [];
       this._isNewGame = true;
   }
