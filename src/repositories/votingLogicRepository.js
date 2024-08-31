@@ -5,7 +5,7 @@ class VotingLogicVariables {
       this._whoVotedWho = [];
       this._playersWithMostVotes = [];
       this._isFirstRoundVoting = true;
-      this._gunnedPlayerDuringVoting = -1;
+      this._gunnedPlayerDuringVoting = "-1";
   }
 
   // Getter and Setter for playersThatVoted
@@ -73,11 +73,11 @@ class VotingLogicVariables {
       return this._gunnedPlayerDuringVoting;
   }
   set gunnedPlayerDuringVoting(value) {
-      if (Number.isInteger(value)) {
-          this._gunnedPlayerDuringVoting = value;
-      } else {
-          console.error('gunnedPlayerDuringVoting should be an integer');
-      }
+    if (!isNaN(value)) {
+        this._gunnedPlayerDuringVoting = value.toString();
+    } else {
+        console.error('gunnedPlayerDuringVoting should be a number or a string that can be converted to a number');
+    }
   }
 }
 

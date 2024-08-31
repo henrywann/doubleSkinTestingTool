@@ -139,8 +139,8 @@ function proceedToNextNight(io) {
   }
 
   if (isRoundOver()) {
-    console.log("Night roung is over");
-    roundOverAction(inGameLogicVariables.round, io);
+    console.log("Night round is over");
+    roundOverAction(io);
   }
 }
 

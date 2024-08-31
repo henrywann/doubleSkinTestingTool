@@ -140,21 +140,24 @@ socket.on("verifyKill", ({ playerIdTriggeredEvent, playerIdBeingKilled, alivePla
   }
 });
 
-socket.on("verifyCheck", ({ playerIdTriggeredEvent, playerIdBeingChecked, alivePlayers, round }) => {
-  if (
-    sessionStorage.getItem("currentCard") === "police" &&
-    sessionStorage.getItem("playerId") !== playerIdTriggeredEvent
-  ) {
-    sessionStorage.setItem("state", "policeVerify");
-    outputVerifyCheck(playerIdBeingChecked, alivePlayers, round);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+socket.on(
+  "verifyCheck",
+  ({ playerIdTriggeredEvent, playerIdBeingChecked, alivePlayers, round }) => {
+    if (
+      sessionStorage.getItem("currentCard") === "police" &&
+      sessionStorage.getItem("playerId") !== playerIdTriggeredEvent
+    ) {
+      sessionStorage.setItem("state", "policeVerify");
+      outputVerifyCheck(playerIdBeingChecked, alivePlayers, round);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+    // if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
+    //     sessionStorage.setItem("state", "policeVerify");
+    //     outputVerifyCheck(playerId, alivePlayers, round);
+    //     chatMessages.scrollTop = chatMessages.scrollHeight;
+    // }
   }
-  // if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
-  //     sessionStorage.setItem("state", "policeVerify");
-  //     outputVerifyCheck(playerId, alivePlayers, round);
-  //     chatMessages.scrollTop = chatMessages.scrollHeight;
-  // }
-});
+);
 
 socket.on("gunComplete", ({ playerId, alivePlayers, round }) => {
   if (sessionStorage.getItem("currentCard") === "gunSmith") {
@@ -167,6 +170,8 @@ socket.on("gunComplete", ({ playerId, alivePlayers, round }) => {
     noGunBtn.disabled = true;
     if (playerId !== "0") {
       outputMessage(`玩家${playerId}被崩了!`);
+    } else {
+      outputMessage('本轮选择不发动技能');
     }
   }
 });
@@ -191,6 +196,8 @@ socket.on("poisonReleaseComplete", ({ playerId, alivePlayers, round }) => {
     noReleaseBtn.disabled = true;
     if (playerId !== "0") {
       outputMessage(`玩家${playerId}被释放了毒气!并且毒气扩散到了左右玩家！`);
+    } else {
+      outputMessage('本轮选择不发动技能');
     }
   }
 });
@@ -216,6 +223,8 @@ socket.on("silenceComplete", ({ playerId, alivePlayers, round }) => {
     noSilenceBtn.disabled = true;
     if (playerId !== "0") {
       outputMessage(`玩家${playerId}被禁言!`);
+    } else {
+      outputMessage('本轮选择不发动技能');
     }
   }
 });
@@ -635,7 +644,7 @@ function killerPlayerRouter(playerId, killerCount) {
  * @param {*} playerId the playerId that is being killed
  */
 function verifyKillPlayer(playerId) {
-//   sessionStorage.setItem("isInitiatingKill", true);
+  //   sessionStorage.setItem("isInitiatingKill", true);
   outputMessage("等待队友确认...");
   const currentPlayerId = sessionStorage.getItem("playerId");
   socket.emit("verifyKillPlayer", currentPlayerId.toString(), playerId);

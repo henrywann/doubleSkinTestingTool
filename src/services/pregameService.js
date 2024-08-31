@@ -1,16 +1,12 @@
 const fs = require("fs");
 
-const {
-  initAlivePlayers,
-  getAlivePlayers,
-  sortAlivePlayers,
-} = require("../models/alivePlayers");
+const { initAlivePlayers, getAlivePlayers, sortAlivePlayers } = require("../models/alivePlayers");
 
 const { initPlayers, getPlayers } = require("../models/players");
 
 const { initAllPlayers, getAllPlayers } = require("../models/allPlayers");
 
-const GameLogicVariables = require('../repositories/gameLogicRepository');
+const GameLogicVariables = require("../repositories/gameLogicRepository");
 var gameLogicVariables = new GameLogicVariables();
 
 // Declaring global variables
@@ -43,26 +39,21 @@ function processSelectGoodCard(card, io) {
 }
 
 function processJoinGame(joinGame, socket, io) {
-  console.log('processJoinGame playerlength: ', joinGame.numOfPlayers);
-  gameLogicVariables.badGuysCombination = joinGame.badIdentities;
-  console.log('gameLogicVariables: ', gameLogicVariables);
+  console.log("processJoinGame playerlength: ", joinGame.numOfPlayers);
+  if (gameLogicVariables.badGuysCombination === "-1") {
+    gameLogicVariables.badGuysCombination = joinGame.badIdentities;
+  }
+  console.log("gameLogicVariables: ", gameLogicVariables);
   if (joinGame.socketId == null) {
-    console.log('joinGame.socketId is null')
+    console.log("joinGame.socketId is null");
     if (gameLogicVariables.playerLength === "0") {
       gameLogicVariables.playerLength = joinGame.numOfPlayers;
     }
-    console.log('gameLogicVariables: ', gameLogicVariables);
-    const player = playerJoin(
-      socket.id,
-      joinGame.username,
-      gameLogicVariables.playerLength
-    );
+    console.log("gameLogicVariables: ", gameLogicVariables);
+    const player = playerJoin(socket.id, joinGame.username, gameLogicVariables.playerLength);
     gameLogicVariables.isNewGame = false;
     if (player == null) {
-      socket.emit(
-        "message",
-        "Speculator mode. Please wait for game to finish."
-      );
+      socket.emit("message", "Speculator mode. Please wait for game to finish.");
       socket.emit("roomUsers", getAllPlayers());
     } else {
       socket.emit("showIdentity", player);
@@ -107,14 +98,14 @@ function processJoinGame(joinGame, socket, io) {
 }
 
 function playerJoin(id, username, playerLength) {
-  console.log('playerLength: ', playerLength);
+  console.log("playerLength: ", playerLength);
   if (gameLogicVariables.isNewGame) {
     var cardConfig;
     var cardConfigFilePath;
     if (playerLength === "7") {
       console.log("7 player version");
       // TODO: need to dynamically populate good guy cards
-      if (gameLogicVariables.badIdentities === "1") {
+      if (gameLogicVariables.badGuysCombination === "1") {
         cardConfigFilePath = "src/resources/cardsSevenPlayerVersion1.json";
       } else {
         cardConfigFilePath = "src/resources/cardsSevenPlayerVersion2.json";
