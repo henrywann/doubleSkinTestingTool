@@ -630,11 +630,15 @@ function killerPlayerRouter(playerId, killerCount) {
   }
 }
 
+/**
+ *
+ * @param {*} playerId the playerId that is being killed
+ */
 function verifyKillPlayer(playerId) {
 //   sessionStorage.setItem("isInitiatingKill", true);
   outputMessage("等待队友确认...");
   const currentPlayerId = sessionStorage.getItem("playerId");
-  socket.emit("verifyKillPlayer", currentPlayerId.toString());
+  socket.emit("verifyKillPlayer", currentPlayerId.toString(), playerId);
 }
 
 function killPlayer(playerId) {
