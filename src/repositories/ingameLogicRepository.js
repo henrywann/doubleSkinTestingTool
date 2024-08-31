@@ -230,7 +230,7 @@ class InGameLogicVariables {
   }
   set isKillerCheckingInProgress(value) {
     if (typeof value === "boolean") {
-      this._isKillerCheckingInProgresss = value;
+      this._isKillerCheckingInProgress = value;
     } else {
       console.error("isKillerCheckingInProgress should be a boolean");
     }
