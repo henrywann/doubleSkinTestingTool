@@ -82,10 +82,11 @@ module.exports = function (server) {
       }
     });
 
-    socket.on("verifyKillPlayer", (playerId) => {
+    socket.on("verifyKillPlayer", (playerIdTriggeredEvent,playerIdBeingKilled) => {
       if (processVerifyKillerPlayer()) {
         io.emit("verifyKill", {
-          playerId: playerId,
+          playerIdTriggeredEvent: playerIdTriggeredEvent,
+          playerIdBeingKilled: playerIdBeingKilled,
           alivePlayers: getAlivePlayers(),
           round: getRound(),
         });
@@ -129,11 +130,12 @@ module.exports = function (server) {
       }
     });
 
-    socket.on("verifyCheckPlayer", (playerId) => {
-      console.log("verifyCheckPlayer, playerId that triggered this event: ", playerId);
+    socket.on("verifyCheckPlayer", (playerIdTriggeredEvent, playerIdBeingChecked) => {
+      console.log("verifyCheckPlayer, playerId that triggered this event: ", playerIdTriggeredEvent);
       if (processVerifyCheckPlayer()) {
         io.emit("verifyCheck", {
-          playerId: playerId,
+          playerIdTriggeredEvent: playerIdTriggeredEvent,
+          playerIdBeingChecked: playerIdBeingChecked,
           alivePlayers: getAlivePlayers(),
           round: getRound(),
         });

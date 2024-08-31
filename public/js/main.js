@@ -129,24 +129,24 @@ socket.on("gunSmithAction", ({ alivePlayers, round, isVotingRound }) => {
   }
 });
 
-socket.on("verifyKill", ({ playerId, alivePlayers, round }) => {
+socket.on("verifyKill", ({ playerIdTriggeredEvent, playerIdBeingKilled, alivePlayers, round }) => {
   if (
     sessionStorage.getItem("currentCard") === "killer" &&
-    sessionStorage.getItem("playerId") !== "playerId"
+    sessionStorage.getItem("playerId") !== playerIdTriggeredEvent
   ) {
     sessionStorage.setItem("state", "killerVerify");
-    outputVerifyKill(playerId, alivePlayers, round);
+    outputVerifyKill(playerIdBeingKilled, alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 });
 
-socket.on("verifyCheck", ({ playerId, alivePlayers, round }) => {
+socket.on("verifyCheck", ({ playerIdTriggeredEvent, playerIdBeingChecked, alivePlayers, round }) => {
   if (
     sessionStorage.getItem("currentCard") === "police" &&
-    sessionStorage.getItem("playerId") !== playerId
+    sessionStorage.getItem("playerId") !== playerIdTriggeredEvent
   ) {
     sessionStorage.setItem("state", "policeVerify");
-    outputVerifyCheck(playerId, alivePlayers, round);
+    outputVerifyCheck(playerIdBeingChecked, alivePlayers, round);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
   // if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
@@ -614,7 +614,7 @@ function verifyCheckPlayer(playerId) {
   // sessionStorage.setItem("isInitiatingCheck", true);
   outputMessage("等待队友确认...");
   const currentPlayerId = sessionStorage.getItem("playerId");
-  socket.emit("verifyCheckPlayer", currentPlayerId.toString());
+  socket.emit("verifyCheckPlayer", currentPlayerId.toString(), playerId);
 }
 
 function checkPlayer(checkedPlayerId) {
