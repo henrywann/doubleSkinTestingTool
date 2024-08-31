@@ -735,6 +735,7 @@ function processVerifyKillerPlayer() {
     console.log("Killer checking is ongoing...");
     return false;
   } else {
+    console.log("You are the first killer initiated action");
     inGameLogicVariables.isKillerCheckingInProgress = true;
     return true;
   }
