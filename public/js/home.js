@@ -6,6 +6,14 @@ const badIdentitiesSelectedDropDown = document.getElementById("badIdentities");
 socket.on("connect", () => {
   console.log(socket.id);
   socket.emit("initialGoodCards");
+  socket.emit("initialNumberOfPlayers");
+  socket.emit("initialBadIdentities");
+  socket.emit("isAnyoneJoinedGame");
+});
+
+socket.on("disableGameSelections", () => {
+    badIdentitiesSelectedDropDown.disabled = true;
+    numberOfPlayersSelectedDropDown.disabled = true;
 });
 
 socket.on("displaySelectedCardsEvent", (goodPlayerCardList) => {
@@ -34,13 +42,14 @@ function displaySelectedCards(selectedCardList) {
 }
 
 function selectNumberOfPlayersFromDropDown() {
-  var text = numberOfPlayersSelectedDropDown.options[numberOfPlayersSelectedDropDown.selectedIndex].text;
+  var text =
+    numberOfPlayersSelectedDropDown.options[numberOfPlayersSelectedDropDown.selectedIndex].text;
   socket.emit("selectNumberOfPlayers", text);
 }
 
 function displayNumberOfPlayersFromDropDown(numberOfPlayers) {
   numberOfPlayersSelectedDropDown.value = numberOfPlayers;
-  if (numberOfPlayers === '7') {
+  if (numberOfPlayers === "7") {
     badIdentitiesSelectedDropDown.disabled = false;
   } else {
     badIdentitiesSelectedDropDown.disabled = true;
