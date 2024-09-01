@@ -66,6 +66,10 @@ module.exports = function (server) {
       processSelectGoodCard(card, io);
     });
 
+    socket.on("selectNumberOfPlayers", numOfPlayers => {
+      io.emit("displaySelectedNumberOfPlayers", numOfPlayers);
+    });
+
     socket.on("restartGame", () => {
       resetAllGameLogicVariables();
       resetPreGameLogicVariables();

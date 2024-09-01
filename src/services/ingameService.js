@@ -787,13 +787,7 @@ function voteComplete(voteIndex, io) {
       console.log(
         `voteblePlayers: ${JSON.stringify(votingLogicVariables.voteblePlayers, null, 4)}`
       );
-      console.log(
-        `playersWithMostVotes: ${JSON.stringify(
-          votingLogicVariables.playersWithMostVotes,
-          null,
-          4
-        )}`
-      );
+      console.log('playersWithMostVotes', votingLogicVariables.playersWithMostVotes);
       var playersCanBeVoted =
         votingLogicVariables.playersWithMostVotes.length > 1
           ? votingLogicVariables.playersWithMostVotes
