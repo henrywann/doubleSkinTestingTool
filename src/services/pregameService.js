@@ -25,6 +25,26 @@ function getInitialGoodCards() {
   return gameLogicVariables.goodPlayerCardList;
 }
 
+function getInitialNumberOfPlayers() {
+  return gameLogicVariables.numberOfPlayers;
+}
+
+function getInitialBadIdentities() {
+  return gameLogicVariables.badIdentities;
+}
+
+function processIsAnyoneJoinedGame() {
+  return gameLogicVariables.playerLength !== "0";
+}
+
+function processSelectNumberOfPlayers(numOfPlayers) {
+  gameLogicVariables.numberOfPlayers = numOfPlayers;
+}
+
+function processSelectBadIdentities(badIdentities) {
+  gameLogicVariables.badIdentities = badIdentities;
+}
+
 function processSelectGoodCard(card, io) {
   if (gameLogicVariables.goodPlayerCardList.includes(card)) {
     const index = gameLogicVariables.goodPlayerCardList.indexOf(card);
@@ -217,6 +237,11 @@ module.exports = {
   resetPreGameLogicVariables,
   processJoinGame,
   processPlayerReady,
+  processIsAnyoneJoinedGame,
+  processSelectNumberOfPlayers,
+  processSelectBadIdentities,
   processSelectGoodCard,
   getInitialGoodCards,
+  getInitialNumberOfPlayers,
+  getInitialBadIdentities,
 };

@@ -9,6 +9,11 @@ const {
   processPlayerReady,
   processSelectGoodCard,
   getInitialGoodCards,
+  getInitialNumberOfPlayers,
+  getInitialBadIdentities,
+  processIsAnyoneJoinedGame,
+  processSelectNumberOfPlayers,
+  processSelectBadIdentities,
 } = require("../services/pregameService");
 
 const {
@@ -46,6 +51,7 @@ module.exports = function (server) {
     // socket.on('joinGame', ({username, numOfPlayers, badIdentities, socketId, state, voteIndex})
     socket.on("joinGame", (joinGame) => {
       console.log("JoinGame object: ", joinGame);
+      io.emit("disableGameSelections");
       processJoinGame(joinGame, socket, io);
     });
 
@@ -62,15 +68,36 @@ module.exports = function (server) {
       io.emit("displaySelectedCardsEvent", initialGoodCards);
     });
 
+    socket.on("isAnyoneJoinedGame", () => {
+      console.log("checking isAnyoneJoinedGame");
+      if (processIsAnyoneJoinedGame()) {
+        io.emit("disableGameSelections");
+      }
+    });
+
+    socket.on("initialNumberOfPlayers", () => {
+      console.log("returning initialNumberOfPlayers");
+      const initialNumberOfPlayers = getInitialNumberOfPlayers();
+      io.emit("displaySelectedNumberOfPlayers", initialNumberOfPlayers);
+    });
+
+    socket.on("initialBadIdentities", () => {
+      console.log("returning initialBadIdentities");
+      const initialBadIdentities = getInitialBadIdentities();
+      io.emit("displaySelectedBadIdentities", initialBadIdentities);
+    });
+
     socket.on("selectGoodCard", (card) => {
       processSelectGoodCard(card, io);
     });
 
     socket.on("selectNumberOfPlayers", numOfPlayers => {
+      processSelectNumberOfPlayers(numOfPlayers);
       io.emit("displaySelectedNumberOfPlayers", numOfPlayers);
     });
 
     socket.on("selectedBadIdentities", badIdentities => {
+      processSelectBadIdentities(badIdentities);
       io.emit("displaySelectedBadIdentities", badIdentities);
     });
 
