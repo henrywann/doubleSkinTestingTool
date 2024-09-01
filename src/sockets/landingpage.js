@@ -70,6 +70,10 @@ module.exports = function (server) {
       io.emit("displaySelectedNumberOfPlayers", numOfPlayers);
     });
 
+    socket.on("selectedBadIdentities", badIdentities => {
+      io.emit("displaySelectedBadIdentities", badIdentities);
+    });
+
     socket.on("restartGame", () => {
       resetAllGameLogicVariables();
       resetPreGameLogicVariables();

@@ -32,12 +32,14 @@
 					</div>
 					<div class="form-control">
 						<label for="numOfPlayers">请选择玩家数量</label>
-						<select name="numOfPlayers" id="numOfPlayers">
+						<select name="numOfPlayers" id="numOfPlayers" onChange="selectNumberOfPlayersFromDropDown()">
+							<option value=6>6</option>
+							<option value=7>7</option>
 						</select>
 					</div>
 					<div class="form-control">
 						<label for="badIdentities">请选择7人局坏人牌</label>
-						<select name="badIdentities" id="badIdentities">
+						<select name="badIdentities" id="badIdentities" onChange="selectBadIdentitiesFromDropDown()" disabled>
 							<option value=1>杀手，复仇者，禁言</option>
 							<option value=2>杀手，生化学家，禁言</option>
 						</select>
@@ -55,8 +57,6 @@
 				<button class="actionBtn" id="selectPriestCard" onclick="selectCard('priest')"> 牧师</button>
 				<button class="actionBtn" id="selectEngineerCard" onclick="selectCard('engineer')"> 工兵</button>
 				<button class="actionBtn" id="selectJudgeCard" onclick="selectCard('judge')"> 法官</button>
-				<button class="actionBtn" id="selectSixPlayer" onclick="selectNumberOfPlayers('6')"> 6</button>
-				<button class="actionBtn" id="selectSevenPlayer" onclick="selectNumberOfPlayers('7')"> 7</button>
 
 			</main>
 		</div>
