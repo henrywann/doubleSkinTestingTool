@@ -87,6 +87,15 @@ socket.on("silencerAction", ({ alivePlayers, round }) => {
   }
 });
 
+socket.on("turtleAction", ({ alivePlayers, round }) => {
+  console.log("received turtle action");
+  if (sessionStorage.getItem("currentCard") === "turtle") {
+    sessionStorage.setItem("state", "turtleAction");
+    outputTurtleSelection(round);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+});
+
 socket.on("killerAction", ({ alivePlayers, round, killerCount }) => {
   if (sessionStorage.getItem("currentCard") === "killer") {
     sessionStorage.setItem("state", "killerAction");
@@ -140,24 +149,21 @@ socket.on("verifyKill", ({ playerIdTriggeredEvent, playerIdBeingKilled, alivePla
   }
 });
 
-socket.on(
-  "verifyCheck",
-  ({ playerIdTriggeredEvent, playerIdBeingChecked, alivePlayers, round }) => {
-    if (
-      sessionStorage.getItem("currentCard") === "police" &&
-      sessionStorage.getItem("playerId") !== playerIdTriggeredEvent
-    ) {
-      sessionStorage.setItem("state", "policeVerify");
-      outputVerifyCheck(playerIdBeingChecked, alivePlayers, round);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-    // if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
-    //     sessionStorage.setItem("state", "policeVerify");
-    //     outputVerifyCheck(playerId, alivePlayers, round);
-    //     chatMessages.scrollTop = chatMessages.scrollHeight;
-    // }
+socket.on("verifyCheck", ({ playerIdTriggeredEvent, playerIdBeingChecked, alivePlayers, round }) => {
+  if (
+    sessionStorage.getItem("currentCard") === "police" &&
+    sessionStorage.getItem("playerId") !== playerIdTriggeredEvent
+  ) {
+    sessionStorage.setItem("state", "policeVerify");
+    outputVerifyCheck(playerIdBeingChecked, alivePlayers, round);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
-);
+  // if (sessionStorage.getItem("currentCard")==="police" && sessionStorage.getItem("isInitiatingCheck")==='false') {
+  //     sessionStorage.setItem("state", "policeVerify");
+  //     outputVerifyCheck(playerId, alivePlayers, round);
+  //     chatMessages.scrollTop = chatMessages.scrollHeight;
+  // }
+});
 
 socket.on("gunComplete", ({ playerId, alivePlayers, round }) => {
   if (sessionStorage.getItem("currentCard") === "gunSmith") {
@@ -171,7 +177,7 @@ socket.on("gunComplete", ({ playerId, alivePlayers, round }) => {
     if (playerId !== "0") {
       outputMessage(`玩家${playerId}被崩了!`);
     } else {
-      outputMessage('本轮选择不发动技能');
+      outputMessage("本轮选择不发动技能");
     }
   }
 });
@@ -197,7 +203,7 @@ socket.on("poisonReleaseComplete", ({ playerId, alivePlayers, round }) => {
     if (playerId !== "0") {
       outputMessage(`玩家${playerId}被释放了毒气!并且毒气扩散到了左右玩家！`);
     } else {
-      outputMessage('本轮选择不发动技能');
+      outputMessage("本轮选择不发动技能");
     }
   }
 });
@@ -224,8 +230,18 @@ socket.on("silenceComplete", ({ playerId, alivePlayers, round }) => {
     if (playerId !== "0") {
       outputMessage(`玩家${playerId}被禁言!`);
     } else {
-      outputMessage('本轮选择不发动技能');
+      outputMessage("本轮选择不发动技能");
     }
+  }
+});
+
+socket.on("retractComplete", ({ round, isRetracted }) => {
+  if (sessionStorage.getItem("currentCard") === "turtle") {
+    sessionStorage.setItem("state", "retractComplete");
+    document.getElementById(`yesRetract-${round}`).disabled = true;
+    document.getElementById(`noRetract-${round}`).disabled = true;
+    const message = isRetracted ? "缩头乌龟！白天不能投票！" : "勇敢的乌龟！白天可以投票！";
+    outputMessage(message);
   }
 });
 
@@ -239,9 +255,7 @@ socket.on("checkComplete", ({ playerId, alivePlayers, round }) => {
       if (e.playerId === playerId - 1) {
         const currentCard = e.card1 === "" ? e.card2 : e.card1;
         const currentId =
-          currentCard === "killer" || currentCard === "silencer" || currentCard === "bioChemist"
-            ? "坏人"
-            : "好人";
+          currentCard === "killer" || currentCard === "silencer" || currentCard === "bioChemist" ? "坏人" : "好人";
         const message = `玩家${playerId}的目前身份是${currentId}`;
         outputMessage(message);
       }
@@ -249,36 +263,35 @@ socket.on("checkComplete", ({ playerId, alivePlayers, round }) => {
   }
 });
 
-socket.on(
-  "votePlayer",
-  ({ voteThisPlayer, voteIndex, voteblePlayers, round, isFirstRoundVoting }) => {
-    sessionStorage.setItem("state", "votePlayer");
-    sessionStorage.setItem("voteIndex", voteIndex);
-    voteblePlayers.forEach((e) => {
-      if (e.playerId === sessionStorage.getItem("playerId")) {
-        if (e.alreadyVoted === "Y") {
-          voteNo(voteThisPlayer.playerId, round);
-        } else {
-          outputVoteSelection(voteThisPlayer, round, isFirstRoundVoting);
-          chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+socket.on("votePlayer", ({ voteThisPlayer, voteIndex, voteblePlayers, round, isFirstRoundVoting }) => {
+  sessionStorage.setItem("state", "votePlayer");
+  sessionStorage.setItem("voteIndex", voteIndex);
+  voteblePlayers.forEach((e) => {
+    if (e.playerId === sessionStorage.getItem("playerId")) {
+      if (e.alreadyVoted === "Y") {
+        voteNo(voteThisPlayer.playerId, round);
+      } else {
+        outputVoteSelection(voteThisPlayer, round, isFirstRoundVoting);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
       }
-    });
-  }
-);
+    }
+  });
+});
 
-socket.on("updateCurrentCard", (alivePlayers) => {
+socket.on("updateCurrentCard", ({ alivePlayers, nightOrDay }) => {
   console.log("entering updateCurrentCard");
   var isPlayerAlive = false;
   alivePlayers.forEach((e) => {
     console.log(`playerId: ${typeof e.playerId} ${e.playerId}`);
     if ((e.playerId + 1).toString() === sessionStorage.getItem("playerId")) {
       isPlayerAlive = true;
+      // Resetting isRetracted to false for turtle for next night
+      if (sessionStorage.getItem("currentCard") === "turtle" && nightOrDay === "turningNight") {
+        sessionStorage.setItem("isRetracted", false);
+      }
       if (
         (sessionStorage.getItem("currentCard") === "revenger" && e.card1 === "killer") ||
-        (sessionStorage.getItem("currentCard") === "revenger" &&
-          e.card1 === "" &&
-          e.card2 == "killer")
+        (sessionStorage.getItem("currentCard") === "revenger" && e.card1 === "" && e.card2 == "killer")
       ) {
         sessionStorage.setItem("currentCard", "killer");
       }
@@ -304,19 +317,11 @@ socket.on("gunSmithVotingRoundAction", ({ alivePlayers, round, isVotingRound }) 
 
 socket.on("voteComplete", ({ currentPlayer, round, isFirstRoundVoting, playerBeingVoted }) => {
   if (sessionStorage.getItem("playerId") === currentPlayer) {
-    if (
-      document.getElementById(`voteYes${playerBeingVoted}-${round}-${isFirstRoundVoting}`) != null
-    ) {
-      document.getElementById(
-        `voteYes${playerBeingVoted}-${round}-${isFirstRoundVoting}`
-      ).disabled = true;
+    if (document.getElementById(`voteYes${playerBeingVoted}-${round}-${isFirstRoundVoting}`) != null) {
+      document.getElementById(`voteYes${playerBeingVoted}-${round}-${isFirstRoundVoting}`).disabled = true;
     }
-    if (
-      document.getElementById(`voteNo${playerBeingVoted}-${round}-${isFirstRoundVoting}`) != null
-    ) {
-      document.getElementById(
-        `voteNo${playerBeingVoted}-${round}-${isFirstRoundVoting}`
-      ).disabled = true;
+    if (document.getElementById(`voteNo${playerBeingVoted}-${round}-${isFirstRoundVoting}`) != null) {
+      document.getElementById(`voteNo${playerBeingVoted}-${round}-${isFirstRoundVoting}`).disabled = true;
     }
   }
 });
@@ -376,15 +381,11 @@ function outputRevengerSelection() {
   for (var i = 0; i < 7; i++) {
     div.insertAdjacentHTML(
       "beforeEnd",
-      `<button class="actionBtn" id="revenge${i + 1}-card1" onclick="revenge(${i + 1}, 1)"> 玩家${
-        i + 1
-      }身份1 </button>`
+      `<button class="actionBtn" id="revenge${i + 1}-card1" onclick="revenge(${i + 1}, 1)"> 玩家${i + 1}身份1 </button>`
     );
     div.insertAdjacentHTML(
       "beforeEnd",
-      `<button class="actionBtn" id="revenge${i + 1}-card2" onclick="revenge(${i + 1}, 2)"> 玩家${
-        i + 1
-      }身份2 </button>`
+      `<button class="actionBtn" id="revenge${i + 1}-card2" onclick="revenge(${i + 1}, 2)"> 玩家${i + 1}身份2 </button>`
     );
   }
   document.querySelector(".chat-messages").appendChild(div);
@@ -398,12 +399,22 @@ function outputVoteSelection(playerTobeVoted, round, isFirstRoundVoting) {
   const div = document.createElement("div");
   div.classList.add("message");
   div.innerHTML = `<p class="text">是否投玩家${playerTobeVoted.playerId}？<p>`;
+  // div.insertAdjacentHTML(
+  //   "beforeEnd",
+  //   `<button id="voteYes${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}"
+  //                                       onclick="voteYes(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;是&nbsp; </button>
+  //                                       <button id="voteNo${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}"
+  //                                       onclick="voteNo(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;否&nbsp; </button>`
+  // );
+  if (sessionStorage.getItem("currentCard") !== "turtle" || sessionStorage.getItem("isRetracted") === "false") {
+    div.insertAdjacentHTML(
+      "beforeEnd",
+      `<button id="voteYes${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" onclick="voteYes(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;是&nbsp; </button>`
+    );
+  }
   div.insertAdjacentHTML(
     "beforeEnd",
-    `<button id="voteYes${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" 
-                                        onclick="voteYes(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;是&nbsp; </button>
-                                        <button id="voteNo${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" 
-                                        onclick="voteNo(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;否&nbsp; </button>`
+    `<button id="voteNo${playerTobeVoted.playerId}-${round}-${isFirstRoundVoting}" onclick="voteNo(${playerTobeVoted.playerId},${round},${isFirstRoundVoting})"> &nbsp;否&nbsp; </button>`
   );
   document.querySelector(".chat-messages").appendChild(div);
 }
@@ -501,9 +512,9 @@ function outputDoctorSelection(alivePlayers, round) {
   alivePlayers.forEach((e) => {
     div.insertAdjacentHTML(
       "beforeEnd",
-      `<button class="actionBtn" id="doctor${e.playerId + 1}-${round}" onclick="injectPlayer(${
+      `<button class="actionBtn" id="doctor${e.playerId + 1}-${round}" onclick="injectPlayer(${e.playerId + 1})"> ${
         e.playerId + 1
-      })"> ${e.playerId + 1} </button>`
+      } </button>`
     );
   });
   document.querySelector(".chat-messages").appendChild(div);
@@ -591,9 +602,9 @@ function outputSilencerSelection(alivePlayers, round) {
   alivePlayers.forEach((e) => {
     div.insertAdjacentHTML(
       "beforeEnd",
-      `<button class="actionBtn" id="silence${e.playerId + 1}-${round}" onclick="silencePlayer(${
+      `<button class="actionBtn" id="silence${e.playerId + 1}-${round}" onclick="silencePlayer(${e.playerId + 1})"> ${
         e.playerId + 1
-      })"> ${e.playerId + 1} </button>`
+      } </button>`
     );
   });
   div.insertAdjacentHTML(
@@ -601,6 +612,34 @@ function outputSilencerSelection(alivePlayers, round) {
     `<button class="actionBtn" id="noSilence-${round}" onclick="silencePlayer(0)"> 不禁言 </button>`
   );
   document.querySelector(".chat-messages").appendChild(div);
+}
+
+function outputTurtleSelection(round) {
+  const div = document.createElement("div");
+  div.classList.add("message");
+  div.innerHTML = '<p class="text">乌龟是否缩头<p>';
+  div.insertAdjacentHTML(
+    "beforeEnd",
+    `<button class="actionBtn" id="yesRetract-${round}" onclick="retract(true)"> 是 </button>`
+  );
+  div.insertAdjacentHTML(
+    "beforeEnd",
+    `<button class="actionBtn" id="noRetract-${round}" onclick="retract(false)"> 否 </button>`
+  );
+  document.querySelector(".chat-messages").appendChild(div);
+}
+
+function retract(isRetracted) {
+  if (isRetracted) {
+    sessionStorage.setItem("isRetracted", true);
+  } else {
+    sessionStorage.setItem("isRetracted", false);
+  }
+  const currentPlayerId = sessionStorage.getItem("playerId");
+  socket.emit("retractSelected", {
+    currentPlayerId: currentPlayerId.toString(),
+    isRetracted: isRetracted,
+  });
 }
 
 function injectPlayer(injectedPlayer) {
