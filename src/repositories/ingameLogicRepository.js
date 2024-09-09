@@ -6,6 +6,7 @@ class InGameLogicVariables {
     this._gunSmithCount = 0;
     this._silencerCount = 0;
     this._bioChemistCount = 0;
+    this._turtleCount = 0;
     this._round = 0;
     this._poisonReleasedRound = 0;
     this._noKillerPresent = false;
@@ -89,6 +90,20 @@ class InGameLogicVariables {
       this._bioChemistCount = value;
     } else {
       console.error("bioChemistCount should be an integer");
+    }
+  }
+
+  // Getter for turtleCount
+  get turtleCount() {
+    return this._turtleCount;
+  }
+
+  // Setter for turtleCount
+  set turtleCount(value) {
+    if (Number.isInteger(value)) {
+      this._turtleCount = value;
+    } else {
+      console.error("turtleCount should be an integer");
     }
   }
 

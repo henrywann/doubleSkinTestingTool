@@ -1,9 +1,6 @@
 const InGameLogicVariables = require("../repositories/ingameLogicRepository");
 var inGameLogicVariables = new InGameLogicVariables();
 
-// const GameLogicVariables = require("../repositories/gameLogicRepository");
-// var gameLogicVariables = new GameLogicVariables();
-
 const VotingLogicVariables = require("../repositories/votingLogicRepository");
 var votingLogicVariables = new VotingLogicVariables();
 
@@ -18,6 +15,10 @@ const { resetPreGameLogicVariables, getGameLogicVariables } = require("../servic
 
 const isSideKillFlag = true;
 
+/**
+ * This function is call to reset all variables used in game play.
+ * Only use this function when game is over.
+ */
 function resetAllGameLogicVariables() {
   inGameLogicVariables = new InGameLogicVariables();
   resetPreGameLogicVariables();
@@ -37,6 +38,7 @@ function proceedToNextNight(io) {
   inGameLogicVariables.doctorCount = 0;
   inGameLogicVariables.gunSmithCount = 0;
   inGameLogicVariables.bioChemistCount = 0;
+  inGameLogicVariables.turtleCount = 0;
   var i;
   for (i = 0; i < getAlivePlayers().length; i++) {
     const currentPlayer = getAlivePlayers()[i];
@@ -47,10 +49,12 @@ function proceedToNextNight(io) {
     else if (role === "doctor") inGameLogicVariables.doctorCount++;
     else if (role === "gunSmith") inGameLogicVariables.gunSmithCount++;
     else if (role === "bioChemist") inGameLogicVariables.bioChemistCount++;
+    else if (role === "turtle") inGameLogicVariables.turtleCount++;
   }
+  // console.log("Alive players for tonight: ", getAlivePlayers());
 
   // console.log("Updating current card, getAlivePlayers: ", getAlivePlayers());
-  io.emit("updateCurrentCard", getAlivePlayers());
+  io.emit("updateCurrentCard", { alivePlayers: getAlivePlayers(), nightOrDay: "turningNight" });
   // Increasing round count and reseting all voting related global variables
   inGameLogicVariables.round++;
   votingLogicVariables = new VotingLogicVariables();
@@ -86,6 +90,16 @@ function proceedToNextNight(io) {
     } else {
       noPlayerAction("release");
     }
+  }
+
+  if (inGameLogicVariables.turtleCount > 0) {
+    console.log("turtle exists");
+    io.emit("turtleAction", {
+      alivePlayers: getAlivePlayers(),
+      round: inGameLogicVariables.round,
+    });
+  } else {
+    noPlayerAction("retract");
   }
 
   if (inGameLogicVariables.silencerCount > 0) {
@@ -155,6 +169,11 @@ function updateSocketRoomRole(currentPlayer) {
   } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "bioChemist") {
     return "bioChemist";
   }
+  if (currentPlayer.card1 === "turtle") {
+    return "turtle";
+  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "turtle") {
+    return "turtle";
+  }
   if (currentPlayer.card1 === "killer") {
     return "killer";
   } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "killer") {
@@ -175,10 +194,7 @@ function updateSocketRoomRole(currentPlayer) {
   } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "gunSmith") {
     return "gunSmith";
   }
-  if (
-    currentPlayer.card1 === "" &&
-    (currentPlayer.card2 === "villager" || currentPlayer.card2 === "")
-  ) {
+  if (currentPlayer.card1 === "" && (currentPlayer.card2 === "villager" || currentPlayer.card2 === "")) {
     return "villager";
   }
 }
@@ -188,10 +204,7 @@ function noPlayerAction(action) {
     inGameLogicVariables.roundAction.push(getThisRoundNoAction(initializeThisRound(), action));
   } else {
     var thisRound = inGameLogicVariables.roundAction[inGameLogicVariables.round - 1];
-    inGameLogicVariables.roundAction[inGameLogicVariables.round - 1] = getThisRoundNoAction(
-      thisRound,
-      action
-    );
+    inGameLogicVariables.roundAction[inGameLogicVariables.round - 1] = getThisRoundNoAction(thisRound, action);
   }
 }
 
@@ -205,9 +218,24 @@ function initializeThisRound() {
   } else if (getGameLogicVariables().badGuysCombination === "1") {
     // 7 players: killer, revenger, silencer
     if (inGameLogicVariables.round === 1) {
-      thisRound = { killed: -1, checked: -1, gunned: -1, injected: -1, silenced: -1, revenged: -1 };
+      thisRound = {
+        killed: -1,
+        checked: -1,
+        gunned: -1,
+        injected: -1,
+        silenced: -1,
+        revenged: -1,
+        retracted: -1,
+      };
     } else {
-      thisRound = { killed: -1, checked: -1, gunned: -1, injected: -1, silenced: -1 };
+      thisRound = {
+        killed: -1,
+        checked: -1,
+        gunned: -1,
+        injected: -1,
+        silenced: -1,
+        retracted: -1,
+      };
     }
   } else if (getGameLogicVariables().badGuysCombination === "2") {
     // 7 players: killer, bioChem, silencer
@@ -218,6 +246,7 @@ function initializeThisRound() {
       injected: -1,
       silenced: -1,
       poisonReleased: -1,
+      retracted: -1,
     };
   } else {
     console.error("globalBadIdentities is not valid!!!");
@@ -239,6 +268,8 @@ function getThisRoundNoAction(thisRound, action) {
     thisRound.silenced = 0;
   } else if (action === "release") {
     thisRound.poisonReleased = 0;
+  } else if (action === "retract") {
+    thisRound.retracted = 0;
   }
   return thisRound;
 }
@@ -250,17 +281,15 @@ function isRoundOver() {
     return false;
   }
   // TODO; need to dynamically check if all the actions are performed based on the cards selected
-  if (
-    getGameLogicVariables().badGuysCombination === "0" ||
-    getGameLogicVariables().badGuysCombination === "1"
-  ) {
+  if (getGameLogicVariables().badGuysCombination === "0" || getGameLogicVariables().badGuysCombination === "1") {
     // 6 players, or 7 players with revenger
     if (
       currentRound.killed !== -1 &&
       currentRound.checked !== -1 &&
       currentRound.injected !== -1 &&
       currentRound.gunned !== -1 &&
-      currentRound.silenced !== -1
+      currentRound.silenced !== -1 &&
+      currentRound.retracted !== -1
     ) {
       console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
         gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}`);
@@ -282,7 +311,8 @@ function isRoundOver() {
       currentRound.injected !== -1 &&
       currentRound.gunned !== -1 &&
       currentRound.silenced !== -1 &&
-      currentRound.poisonReleased !== -1
+      currentRound.poisonReleased !== -1 &&
+      currentRound.retracted !== -1
     ) {
       console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
         gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}, 
@@ -296,6 +326,10 @@ function isRoundOver() {
   }
 }
 
+/**
+ * This function is called when all players have completed their action during night
+ * @param {socketio} io
+ */
 function roundOverAction(io) {
   setTimeout(
     () => {
@@ -331,8 +365,7 @@ function roundOverAction(io) {
         else deadPlayerMessage = `玩家${deadPlayers}离我们远去了！`;
       }
 
-      const silencedPlayer =
-        inGameLogicVariables.roundAction[inGameLogicVariables.round - 1].silenced.toString();
+      const silencedPlayer = inGameLogicVariables.roundAction[inGameLogicVariables.round - 1].silenced.toString();
       var silencedPlayerMessage = "";
       if (silencedPlayer === "0") {
         silencedPlayerMessage = "没有人被禁言！";
@@ -343,7 +376,7 @@ function roundOverAction(io) {
       io.emit("message", deadPlayerMessage);
       io.emit("message", silencedPlayerMessage);
       io.emit("roomUsers", getAlivePlayers());
-      io.emit("updateCurrentCard", getAlivePlayers());
+      io.emit("updateCurrentCard", { alivePlayers: getAlivePlayers(), nightOrDay: "turningDay" });
 
       if (isBadGuysWon()) {
         io.emit("message", "游戏结束！坏人胜利！");
@@ -366,10 +399,7 @@ function roundOverAction(io) {
         for (var i = 0; i < getAlivePlayers().length; i++) {
           const currentPlayer = getAlivePlayers()[i];
           for (var j = 0; j < deadPlayers.length; j++) {
-            if (
-              (currentPlayer.playerId + 1).toString() === deadPlayers[j] &&
-              currentPlayer.card2 === "gunSmith"
-            ) {
+            if ((currentPlayer.playerId + 1).toString() === deadPlayers[j] && currentPlayer.card2 === "gunSmith") {
               isGunSmithKilled = true;
             }
           }
@@ -398,31 +428,31 @@ function roundOverAction(io) {
   );
 }
 
+/**
+ * Determines the dead players from last night's actions
+ * @returns {Array} deadPlayers
+ */
 function calculateRoundResult() {
   const currentRound = inGameLogicVariables.roundAction[inGameLogicVariables.round - 1];
   var deadPlayers = [];
-  // killed and cured is not the same player, killed player is dead
-  if (currentRound.killed !== 0 && currentRound.killed !== currentRound.injected) {
+  var deathRow = new Set();
+
+  // killed and cured or retracted is not the same player, killed player is dead
+  if (
+    currentRound.killed !== 0 &&
+    currentRound.killed !== currentRound.injected &&
+    currentRound.killed !== currentRound.retracted
+  ) {
     console.log("killed and cured is not the same player");
-    populateDeadPlayers(currentRound.killed, deadPlayers);
+    deathRow.add(currentRound.killed);
   }
+
   // gun smith fired, gunned player is dead
   if (currentRound.gunned !== 0) {
     console.log("gun smith fired");
-    populateDeadPlayers(currentRound.gunned, deadPlayers);
+    deathRow.add(currentRound.gunned);
   }
-  // cured player is not killed, poison increased by 1
-  if (currentRound.injected !== 0 && currentRound.injected !== currentRound.killed) {
-    console.log("cured player is not killed");
-    getAlivePlayers().forEach((e) => {
-      if ((e.playerId + 1).toString() === currentRound.injected) {
-        e.poison++;
-        if (e.poison === 2) {
-          populateDeadPlayers(currentRound.injected, deadPlayers);
-        }
-      }
-    });
-  }
+
   // bioChemist released poison
   if (currentRound.poisonReleased !== 0) {
     console.log("Poison is released");
@@ -437,7 +467,7 @@ function calculateRoundResult() {
       for (var i = 0; i < getAlivePlayers().length; i++) {
         if ((getAlivePlayers()[i].playerId + 1).toString() === currentRound.poisonReleased) {
           if (i === 0) {
-            getAlivePlayers()[alivePlayers.length - 1].poison++;
+            getAlivePlayers()[getAlivePlayers().length - 1].poison++;
             getAlivePlayers()[i + 1].poison++;
           } else if (i === getAlivePlayers().length - 1) {
             getAlivePlayers()[i - 1].poison++;
@@ -452,20 +482,42 @@ function calculateRoundResult() {
     }
 
     for (var i = 0; i < getAlivePlayers().length; i++) {
-      if (getAlivePlayers()[i].poison === 2) {
-        populateDeadPlayers((getAlivePlayers()[i].playerId + 1).toString(), deadPlayers);
+      if (getAlivePlayers()[i].poison >= 2) {
+        deathRow.add((getAlivePlayers()[i].playerId + 1).toString());
       }
     }
   }
+
+  // cured player is not killed, poison increased by 1
+  if (currentRound.injected !== 0 && currentRound.injected !== currentRound.killed) {
+    console.log("cured player is not killed");
+    getAlivePlayers().forEach((e) => {
+      if ((e.playerId + 1).toString() === currentRound.injected) {
+        e.poison++;
+        if (e.poison >= 2) {
+          deathRow.add(currentRound.injected);
+        }
+      }
+    });
+  }
+
+  deathRow.forEach(value => {
+    populateDeadPlayers(value, deadPlayers);
+  });
+
   return deadPlayers.sort();
 }
 
+/**
+ * Updates the card to empty for dead players, and add dead players to deadPlayers list
+ * @param {String} dead
+ * @param {Array} deadPlayers
+ */
 function populateDeadPlayers(dead, deadPlayers) {
   console.log(`Player dead: ${dead} ${typeof dead}`);
   getAlivePlayers().forEach((e) => {
     if (e.playerId + 1 === parseInt(dead)) {
       if (e.card1 !== "") {
-        console.log("card1 is not empty");
         e.card1 = "";
         e.poison = 0;
       } else if (e.card2 !== "") {
@@ -570,11 +622,7 @@ function playerAction(playerId, action) {
     );
   } else {
     var thisRound = inGameLogicVariables.roundAction[inGameLogicVariables.round - 1];
-    inGameLogicVariables.roundAction[inGameLogicVariables.round - 1] = getThisRoundAction(
-      thisRound,
-      action,
-      playerId
-    );
+    inGameLogicVariables.roundAction[inGameLogicVariables.round - 1] = getThisRoundAction(thisRound, action, playerId);
   }
 }
 
@@ -593,6 +641,8 @@ function getThisRoundAction(thisRound, action, playerId) {
     thisRound.revenged = playerId;
   } else if (action === "release") {
     thisRound.poisonReleased = playerId;
+  } else if (action === "retract") {
+    thisRound.retracted = playerId;
   }
   return thisRound;
 }
@@ -646,16 +696,10 @@ function processGunPlayer(playerId, isVotingRound, io) {
 
       populateDeadPlayers(votingLogicVariables.gunnedPlayerDuringVoting, []);
       io.emit("message", `玩家${votingLogicVariables.gunnedPlayerDuringVoting}被Gun Smith带走了！`);
-      if (
-        votingLogicVariables.gunnedPlayerDuringVoting ===
-        inGameLogicVariables.revengeChosen.toString()
-      ) {
+      if (votingLogicVariables.gunnedPlayerDuringVoting === inGameLogicVariables.revengeChosen.toString()) {
         getAlivePlayers().forEach((element) => {
           if ((element.playerId + 1).toString() === votingLogicVariables.gunnedPlayerDuringVoting) {
-            if (
-              (revengeCard === 1 && element.card1 === "") ||
-              (revengeCard === 2 && element.card2 === "")
-            ) {
+            if ((revengeCard === 1 && element.card1 === "") || (revengeCard === 2 && element.card2 === "")) {
               console.log("activate revenger");
               activateRevenager();
             }
@@ -692,15 +736,26 @@ function processGunPlayer(playerId, isVotingRound, io) {
   }
 }
 
+/**
+ * Update the turle action as no action to complete the night round. Turtle action will be saved in front-end
+ */
+function processRetractSelected(currentPlayerId, isRetracted) {
+  console.log("processing retract selected");
+  console.log("player that retracted: ", currentPlayerId);
+  console.log("is retracted? ", isRetracted);
+  if (isRetracted) {
+    playerAction(currentPlayerId, "retract");
+  } else {
+    noPlayerAction("retract");
+  }
+}
+
 function processIncreaseVote(votedPlayer, currentPlayerId, voteIndex, io) {
   if (currentPlayerId !== votingLogicVariables.gunnedPlayerDuringVoting) {
     votingLogicVariables.whoVotedWho.push(currentPlayerId);
   }
   votingLogicVariables.voteblePlayers.forEach((e) => {
-    if (
-      e.playerId === votedPlayer.toString() &&
-      currentPlayerId !== votingLogicVariables.gunnedPlayerDuringVoting
-    ) {
+    if (e.playerId === votedPlayer.toString() && currentPlayerId !== votingLogicVariables.gunnedPlayerDuringVoting) {
       e.numOfVotes++;
     }
     if (e.playerId === currentPlayerId) {
@@ -761,8 +816,10 @@ function processVoteNo(voteIndex, playerId, io) {
 
 function voteComplete(voteIndex, io) {
   console.log("entering voteComplete");
-  console.log("printing current votingLogicVariables: ", votingLogicVariables);
+
   votingLogicVariables.playersThatVoted++;
+  console.log("printing current votingLogicVariables: ", votingLogicVariables);
+  // When all players have completed voting for current player being voted
   if (votingLogicVariables.playersThatVoted === votingLogicVariables.voteblePlayers.length) {
     var curPlayer = votingLogicVariables.isFirstRoundVoting
       ? votingLogicVariables.voteblePlayers[parseInt(voteIndex)].playerId
@@ -776,6 +833,7 @@ function voteComplete(voteIndex, io) {
 
     votingLogicVariables.playersThatVoted = 0;
     console.log(`voteIndex: ${voteIndex}`);
+    // If last votable player is completed, determining if proceed to next night or PK. Else vote next player
     if (
       parseInt(voteIndex) ===
       (votingLogicVariables.playersWithMostVotes.length > 1
@@ -784,10 +842,8 @@ function voteComplete(voteIndex, io) {
     ) {
       // calculate vote result
       console.log("voting of this round is over");
-      console.log(
-        `voteblePlayers: ${JSON.stringify(votingLogicVariables.voteblePlayers, null, 4)}`
-      );
-      console.log('playersWithMostVotes', votingLogicVariables.playersWithMostVotes);
+      console.log(`voteblePlayers: ${JSON.stringify(votingLogicVariables.voteblePlayers, null, 4)}`);
+      console.log("playersWithMostVotes", votingLogicVariables.playersWithMostVotes);
       var playersCanBeVoted =
         votingLogicVariables.playersWithMostVotes.length > 1
           ? votingLogicVariables.playersWithMostVotes
@@ -807,17 +863,17 @@ function voteComplete(voteIndex, io) {
         }
       });
 
-      if (
-        votingLogicVariables.playersWithMostVotes.length > 1 &&
-        votingLogicVariables.isFirstRoundVoting
-      ) {
-        // Restart voting on the players with the same number of votes
+      // Restart voting on the players with the same number of votes
+      if (votingLogicVariables.playersWithMostVotes.length > 1 && votingLogicVariables.isFirstRoundVoting) {
         io.emit("message", "pk");
         votingLogicVariables.voteblePlayers.forEach((e) => {
           e.alreadyVoted = "N";
           e.numOfVotes = 0;
         });
+
         votingLogicVariables.isFirstRoundVoting = false;
+        votingLogicVariables.whoVotedWho = [];
+
         io.emit("votePlayer", {
           voteThisPlayer: votingLogicVariables.playersWithMostVotes[0],
           voteIndex: 0,
@@ -864,8 +920,6 @@ function voteComplete(voteIndex, io) {
         }
       }
     } else {
-      // var curPlayer = voteblePlayers[parseInt(voteIndex)].playerId;
-      // io.emit('message', `Player ${curPlayer} received votes from player(s): ${whoVotedWho}`);
       votingLogicVariables.whoVotedWho = [];
       io.emit("votePlayer", {
         voteThisPlayer:
@@ -893,6 +947,7 @@ module.exports = {
   processChooseRevenge,
   processReleasePoison,
   processGunPlayer,
+  processRetractSelected,
   isFirstRoundVoting,
   processIncreaseVote,
   processVoteNo,

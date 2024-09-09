@@ -28,6 +28,7 @@ const {
   processChooseRevenge,
   processReleasePoison,
   processGunPlayer,
+  processRetractSelected,
   isFirstRoundVoting,
   processIncreaseVote,
   processVoteNo,
@@ -91,12 +92,12 @@ module.exports = function (server) {
       processSelectGoodCard(card, io);
     });
 
-    socket.on("selectNumberOfPlayers", numOfPlayers => {
+    socket.on("selectNumberOfPlayers", (numOfPlayers) => {
       processSelectNumberOfPlayers(numOfPlayers);
       io.emit("displaySelectedNumberOfPlayers", numOfPlayers);
     });
 
-    socket.on("selectedBadIdentities", badIdentities => {
+    socket.on("selectedBadIdentities", (badIdentities) => {
       processSelectBadIdentities(badIdentities);
       io.emit("displaySelectedBadIdentities", badIdentities);
     });
@@ -117,7 +118,7 @@ module.exports = function (server) {
       }
     });
 
-    socket.on("verifyKillPlayer", (playerIdTriggeredEvent,playerIdBeingKilled) => {
+    socket.on("verifyKillPlayer", (playerIdTriggeredEvent, playerIdBeingKilled) => {
       if (processVerifyKillerPlayer()) {
         io.emit("verifyKill", {
           playerIdTriggeredEvent: playerIdTriggeredEvent,
@@ -226,6 +227,17 @@ module.exports = function (server) {
       io.emit("silenceComplete", {
         playerId: playerId,
         alivePlayers: getAlivePlayers(),
+        round: getRound(),
+      });
+      if (isRoundOver()) {
+        roundOverAction(io);
+      }
+    });
+
+    socket.on("retractSelected", ({ currentPlayerId, isRetracted }) => {
+      processRetractSelected(currentPlayerId, isRetracted);
+      io.emit("retractComplete", {
+        isRetracted: isRetracted,
         round: getRound(),
       });
       if (isRoundOver()) {

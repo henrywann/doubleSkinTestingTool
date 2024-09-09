@@ -204,6 +204,7 @@ function getPlayerSide(card1, card2) {
   map.set("doctor", 1);
   map.set("gunSmith", 1);
   map.set("villager", 0);
+  map.set("turtle", 1);
   return map.get(card1) + map.get(card2);
 }
 
