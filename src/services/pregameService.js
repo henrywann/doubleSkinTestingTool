@@ -61,7 +61,11 @@ function processSelectGoodCard(card, io) {
 function processJoinGame(joinGame, socket, io) {
   console.log("processJoinGame playerlength: ", joinGame.numOfPlayers);
   if (gameLogicVariables.badGuysCombination === "-1") {
-    gameLogicVariables.badGuysCombination = joinGame.badIdentities;
+    if (joinGame.numOfPlayers === "6") {
+      gameLogicVariables.badGuysCombination = "0";
+    } else {
+      gameLogicVariables.badGuysCombination = joinGame.badIdentities;
+    }
   }
   console.log("gameLogicVariables: ", gameLogicVariables);
   if (joinGame.socketId == null) {
