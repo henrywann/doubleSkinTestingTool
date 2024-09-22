@@ -30,25 +30,9 @@ socket.emit(
   })
 );
 
-socket.on("revengerAction", () => {
-  if (sessionStorage.getItem("isRevenger") === "true") {
-    outputRevengerSelection();
-  }
-});
-
-socket.on("completeRevengeAction", ({ playerId, cardId }) => {
-  console.log(`playerId: ${playerId}`);
-  if (sessionStorage.getItem("isRevenger") === "true") {
-    for (var i = 0; i < 7; i++) {
-      document.getElementById(`revenge${i + 1}-card1`).disabled = true;
-      document.getElementById(`revenge${i + 1}-card2`).disabled = true;
-    }
-  }
-  if (sessionStorage.getItem("playerId") === playerId.toString()) {
-    const message = `您的第${cardId}张牌被复仇者选中！`;
-    outputMessage(message);
-  }
-});
+/**
+ * This section handles the general gameplay and display message events sent from the server
+ */
 
 socket.on("restartGameForAll", () => {
   sessionStorage.clear();
@@ -69,14 +53,36 @@ socket.on("playerReadyCheckmark", (allPlayers) => {
 
 // Displays player typed messages
 socket.on("playerChatmessage", ({ message, playername, playerId }) => {
-  // console.log(`Incoming message: ${message} ${playername} ${playerId}`);
   outputPlayerChatMessage(message, playername, playerId);
 });
 
 // Displays game messages
 socket.on("message", (message) => {
-  // console.log(`Incoming message: ${message}`);
   outputMessage(message);
+});
+
+/**
+ * This section handles the prompt of player's actions sent from the server at the beginning of night time
+ */
+
+socket.on("revengerAction", () => {
+  if (sessionStorage.getItem("isRevenger") === "true") {
+    outputRevengerSelection();
+  }
+});
+
+socket.on("completeRevengeAction", ({ playerId, cardId }) => {
+  console.log(`playerId: ${playerId}`);
+  if (sessionStorage.getItem("isRevenger") === "true") {
+    for (var i = 0; i < 7; i++) {
+      document.getElementById(`revenge${i + 1}-card1`).disabled = true;
+      document.getElementById(`revenge${i + 1}-card2`).disabled = true;
+    }
+  }
+  if (sessionStorage.getItem("playerId") === playerId.toString()) {
+    const message = `您的第${cardId}张牌被复仇者选中！`;
+    outputMessage(message);
+  }
 });
 
 socket.on("silencerAction", ({ alivePlayers, round }) => {
@@ -138,6 +144,14 @@ socket.on("gunSmithAction", ({ alivePlayers, round, isVotingRound }) => {
   }
 });
 
+socket.on("priestAction", ({ alivePlayers, round }) => {
+  if (sessionStorage.getItem("currentCard") === "priest") {
+    sessionStorage.setItem("state", "priestAction");
+    outputPriestSelection(alivePlayers, round);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+});
+
 socket.on("verifyKill", ({ playerIdTriggeredEvent, playerIdBeingKilled, alivePlayers, round }) => {
   if (
     sessionStorage.getItem("currentCard") === "killer" &&
@@ -176,6 +190,23 @@ socket.on("gunComplete", ({ playerId, alivePlayers, round }) => {
     noGunBtn.disabled = true;
     if (playerId !== "0") {
       outputMessage(`玩家${playerId}被崩了!`);
+    } else {
+      outputMessage("本轮选择不发动技能");
+    }
+  }
+});
+
+socket.on("reviveComplete", ({ playerId, alivePlayers, round }) => {
+  if (sessionStorage.getItem("currentCard") === "priest") {
+    sessionStorage.setItem("state", "reviveComplete");
+    alivePlayers.forEach((e) => {
+      if (e.card1 === "") {
+        document.getElementById(`priest${e.playerId + 1}-${round}`).disabled = true;
+      }
+    });
+    document.getElementById(`noRevive-${round}`).disabled = true;
+    if (playerId !== "0") {
+      outputMessage(`玩家${playerId}将在下一晚复活!`);
     } else {
       outputMessage("本轮选择不发动技能");
     }
@@ -263,6 +294,34 @@ socket.on("checkComplete", ({ playerId, alivePlayers, round }) => {
   }
 });
 
+socket.on("updateRevivedCard", ({ alivePlayers }) => {
+  console.log("entering updateRevivedCard");
+  alivePlayers.forEach((e) => {
+    if ((e.playerId + 1).toString() === sessionStorage.getItem("playerId")) {
+      if (e.isRevived) {
+        sessionStorage.setItem("currentCard", e.cardToBeRevived);
+        const message = "你今天晚上被牧师复活了！";
+        outputMessage(message);
+      }
+    }
+  });
+});
+
+socket.on("revertRevivedCard", ({ alivePlayers }) => {
+  console.log("entering revertRevivedCard");
+  alivePlayers.forEach((e) => {
+    if ((e.playerId + 1).toString() === sessionStorage.getItem("playerId")) {
+      if (e.isRevived) {
+        sessionStorage.setItem("currentCard", e.card2);
+      }
+    }
+  });
+});
+
+/**
+ * This section handles the prompt of player's voting options sent from the server during day time
+ */
+
 socket.on("votePlayer", ({ voteThisPlayer, voteIndex, voteblePlayers, round, isFirstRoundVoting }) => {
   sessionStorage.setItem("state", "votePlayer");
   sessionStorage.setItem("voteIndex", voteIndex);
@@ -282,7 +341,6 @@ socket.on("updateCurrentCard", ({ alivePlayers, nightOrDay }) => {
   console.log("entering updateCurrentCard");
   var isPlayerAlive = false;
   alivePlayers.forEach((e) => {
-    console.log(`playerId: ${typeof e.playerId} ${e.playerId}`);
     if ((e.playerId + 1).toString() === sessionStorage.getItem("playerId")) {
       isPlayerAlive = true;
       // Resetting isRetracted to false for turtle for next night
@@ -505,6 +563,27 @@ function outputGunSmithSelection(alivePlayers, round, isVotingRound) {
   document.querySelector(".chat-messages").appendChild(div);
 }
 
+function outputPriestSelection(alivePlayers, round) {
+  const div = document.createElement("div");
+  div.classList.add("message");
+  div.innerHTML = '<p class="text">牧师请复活玩家<p>';
+  alivePlayers.forEach((e) => {
+    if (e.card1 === "") {
+      div.insertAdjacentHTML(
+        "beforeEnd",
+        `<button class="actionBtn" id="priest${e.playerId + 1}-${round}" onclick="revivePlayer(${e.playerId + 1})"> ${
+          e.playerId + 1
+        } </button>`
+      );
+    }
+  });
+  div.insertAdjacentHTML(
+    "beforeEnd",
+    `<button class="actionBtn" id="noRevive-${round}" onclick="revivePlayer(0)"> 不复活 </button>`
+  );
+  document.querySelector(".chat-messages").appendChild(div);
+}
+
 function outputDoctorSelection(alivePlayers, round) {
   const div = document.createElement("div");
   div.classList.add("message");
@@ -629,6 +708,14 @@ function outputTurtleSelection(round) {
   document.querySelector(".chat-messages").appendChild(div);
 }
 
+/***************************
+ * 
+ * On click action functions
+ * 
+ ***************************/
+
+
+
 function retract(isRetracted) {
   if (isRetracted) {
     sessionStorage.setItem("isRetracted", true);
@@ -699,6 +786,12 @@ function gunPlayer(playerId, isVotingRound) {
     playerId: playerId.toString(),
     isVotingRound: isVotingRound,
     voteIndex: voteIndex,
+  });
+}
+
+function revivePlayer(playerId) {
+  socket.emit("revivePlayer", {
+    playerId: playerId.toString(),
   });
 }
 

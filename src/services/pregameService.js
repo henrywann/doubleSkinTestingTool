@@ -157,13 +157,15 @@ function playerJoin(id, username, playerLength) {
 
 function assignPlayer(id, username, cardsChinese) {
   // get first card
-  const i = Math.floor(Math.random() * (cards.length - 1));
+  const i = Math.floor(Math.random() * (cards.length));
   const card1 = cards[i];
+  const cardToBeRevived = card1;
   const card1Chinese = cardsChinese[i];
+  const isRevived = false;
   cards.splice(i, 1);
   cardsChinese.splice(i, 1);
   // get second card
-  const j = Math.floor(Math.random() * (cards.length - 1));
+  const j = Math.floor(Math.random() * (cards.length));
   // const j =0;
   const card2 = cards[j];
   const card2Chinese = cardsChinese[j];
@@ -181,6 +183,8 @@ function assignPlayer(id, username, cardsChinese) {
   const player = {
     id,
     username,
+    isRevived,
+    cardToBeRevived,
     card1,
     card2,
     card1Chinese,
@@ -234,6 +238,7 @@ function processPlayerReady(currentPlayer, socket, io) {
 
 function playerReady(currentPlayer) {
   currentPlayer.isReady = true;
+  currentPlayer.cardToBeRevived = currentPlayer.card1;
   getAlivePlayers().push(currentPlayer);
 }
 
