@@ -738,7 +738,7 @@ function processGunPlayer(playerId, isVotingRound, io) {
       if (votingLogicVariables.gunnedPlayerDuringVoting === inGameLogicVariables.revengeChosen.toString()) {
         getAlivePlayers().forEach((element) => {
           if ((element.playerId + 1).toString() === votingLogicVariables.gunnedPlayerDuringVoting) {
-            if ((revengeCard === 1 && element.card1 === "") || (revengeCard === 2 && element.card2 === "")) {
+            if ((inGameLogicVariables.revengeCard === 1 && element.card1 === "") || (inGameLogicVariables.revengeCard === 2 && element.card2 === "")) {
               console.log("activate revenger");
               activateRevenager();
             }
