@@ -39,9 +39,20 @@ function proceedToNextNight(io) {
   inGameLogicVariables.gunSmithCount = 0;
   inGameLogicVariables.bioChemistCount = 0;
   inGameLogicVariables.turtleCount = 0;
+  inGameLogicVariables.priestCount = 0;
+
+  // Increasing round count and reseting all voting related global variables
+  inGameLogicVariables.round++;
+  votingLogicVariables = new VotingLogicVariables();
+
   var i;
   for (i = 0; i < getAlivePlayers().length; i++) {
     const currentPlayer = getAlivePlayers()[i];
+    if (currentPlayer.isRevived && inGameLogicVariables.revivedRound + 1 === inGameLogicVariables.round) {
+      console.log("reviving player: ", currentPlayer);
+      currentPlayer.card1 = currentPlayer.cardToBeRevived;
+      io.emit("updateRevivedCard", { alivePlayers: getAlivePlayers() });
+    }
     var role = updateSocketRoomRole(currentPlayer);
     if (role === "killer") inGameLogicVariables.killerCount++;
     else if (role === "silencer") inGameLogicVariables.silencerCount++;
@@ -50,14 +61,12 @@ function proceedToNextNight(io) {
     else if (role === "gunSmith") inGameLogicVariables.gunSmithCount++;
     else if (role === "bioChemist") inGameLogicVariables.bioChemistCount++;
     else if (role === "turtle") inGameLogicVariables.turtleCount++;
+    else if (role === "priest") inGameLogicVariables.priestCount++;
   }
   // console.log("Alive players for tonight: ", getAlivePlayers());
 
   // console.log("Updating current card, getAlivePlayers: ", getAlivePlayers());
   io.emit("updateCurrentCard", { alivePlayers: getAlivePlayers(), nightOrDay: "turningNight" });
-  // Increasing round count and reseting all voting related global variables
-  inGameLogicVariables.round++;
-  votingLogicVariables = new VotingLogicVariables();
 
   io.emit("message", `天黑请闭眼...第${inGameLogicVariables.round}夜!`);
   console.log(`badGuysCombination: ${getGameLogicVariables().badGuysCombination}`);
@@ -111,6 +120,16 @@ function proceedToNextNight(io) {
     noPlayerAction("silence");
   }
 
+  console.log("inGameLogicVariables before priest check ", inGameLogicVariables);
+  if (inGameLogicVariables.priestCount > 0 && !inGameLogicVariables.isPriestRevived) {
+    io.emit("priestAction", {
+      alivePlayers: getAlivePlayers(),
+      round: inGameLogicVariables.round,
+    });
+  } else {
+    noPlayerAction("revive");
+  }
+
   if (inGameLogicVariables.killerCount > 0) {
     inGameLogicVariables.noKillerPresent = false;
     io.emit("killerAction", {
@@ -159,44 +178,10 @@ function proceedToNextNight(io) {
 }
 
 function updateSocketRoomRole(currentPlayer) {
-  if (currentPlayer.card1 === "silencer") {
-    return "silencer";
-  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "silencer") {
-    return "silencer";
-  }
-  if (currentPlayer.card1 === "bioChemist") {
-    return "bioChemist";
-  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "bioChemist") {
-    return "bioChemist";
-  }
-  if (currentPlayer.card1 === "turtle") {
-    return "turtle";
-  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "turtle") {
-    return "turtle";
-  }
-  if (currentPlayer.card1 === "killer") {
-    return "killer";
-  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "killer") {
-    return "killer";
-  }
-  if (currentPlayer.card1 === "police") {
-    return "police";
-  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "police") {
-    return "police";
-  }
-  if (currentPlayer.card1 === "doctor") {
-    return "doctor";
-  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "doctor") {
-    return "doctor";
-  }
-  if (currentPlayer.card1 === "gunSmith") {
-    return "gunSmith";
-  } else if (currentPlayer.card1 === "" && currentPlayer.card2 === "gunSmith") {
-    return "gunSmith";
-  }
-  if (currentPlayer.card1 === "" && (currentPlayer.card2 === "villager" || currentPlayer.card2 === "")) {
+  if (currentPlayer.card1 === "" && currentPlayer.card2 === "") {
     return "villager";
   }
+  return currentPlayer.card1 !== "" ? currentPlayer.card1 : currentPlayer.card2;
 }
 
 function noPlayerAction(action) {
@@ -226,6 +211,7 @@ function initializeThisRound() {
         silenced: -1,
         revenged: -1,
         retracted: -1,
+        revived: -1,
       };
     } else {
       thisRound = {
@@ -235,6 +221,7 @@ function initializeThisRound() {
         injected: -1,
         silenced: -1,
         retracted: -1,
+        revived: -1,
       };
     }
   } else if (getGameLogicVariables().badGuysCombination === "2") {
@@ -247,6 +234,7 @@ function initializeThisRound() {
       silenced: -1,
       poisonReleased: -1,
       retracted: -1,
+      revived: -1,
     };
   } else {
     console.error("globalBadIdentities is not valid!!!");
@@ -270,6 +258,8 @@ function getThisRoundNoAction(thisRound, action) {
     thisRound.poisonReleased = 0;
   } else if (action === "retract") {
     thisRound.retracted = 0;
+  } else if (action === "revive") {
+    thisRound.revived = 0;
   }
   return thisRound;
 }
@@ -289,10 +279,12 @@ function isRoundOver() {
       currentRound.injected !== -1 &&
       currentRound.gunned !== -1 &&
       currentRound.silenced !== -1 &&
-      currentRound.retracted !== -1
+      currentRound.retracted !== -1 &&
+      currentRound.revived !== -1
     ) {
-      console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
-        gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}`);
+      console.log(
+        `killed: ${currentRound.killed}, checked: ${currentRound.checked}, gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}, revived: ${currentRound.revived}`
+      );
       if (inGameLogicVariables.round === 1 && getGameLogicVariables().playerLength === "7") {
         console.log(`revenged: ${currentRound.revenged}`);
         // console.log('round over condition: ', currentRound.revenged !== -1);
@@ -312,10 +304,10 @@ function isRoundOver() {
       currentRound.gunned !== -1 &&
       currentRound.silenced !== -1 &&
       currentRound.poisonReleased !== -1 &&
-      currentRound.retracted !== -1
+      currentRound.retracted !== -1 &&
+      currentRound.revived !== -1
     ) {
-      console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, 
-        gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}, 
+      console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}, revived: ${currentRound.revived}
         poisoned: ${currentRound.poisonReleased}`);
       return true;
     } else {
@@ -334,6 +326,10 @@ function roundOverAction(io) {
   setTimeout(
     () => {
       console.log("Round Over!");
+      // Reverting the revived card
+      if (inGameLogicVariables.revivedRound + 1 === inGameLogicVariables.round) {
+        io.emit("revertRevivedCard", { alivePlayers: getAlivePlayers() });
+      }
       const deadPlayers = calculateRoundResult();
       // console.log(`alive players: ${JSON.stringify(getAlivePlayers(), null, 4)}`);
       deadPlayers.forEach((e) => {
@@ -501,9 +497,34 @@ function calculateRoundResult() {
     });
   }
 
-  deathRow.forEach(value => {
-    populateDeadPlayers(value, deadPlayers);
-  });
+  // if current round is 1 round after priest revival action, priest dies
+  if (inGameLogicVariables.revivedRound + 1 === inGameLogicVariables.round && inGameLogicVariables.isPriestRevived) {
+    getAlivePlayers().forEach((e) => {
+      if (e.card1 === "priest" || (e.card1 === "" && e.card2 === "priest")) {
+        deathRow.add((e.playerId + 1).toString());
+      }
+    });
+    // Only populate dead player if the player is not revived
+    deathRow.forEach((value) => {
+      var matchedAlivePlayer = getAlivePlayers().filter(function (current) {
+        return (current.playerId + 1).toString() === value;
+      })[0];
+      if (!matchedAlivePlayer.isRevived) {
+        populateDeadPlayers(value, deadPlayers);
+      }
+    });
+    // reset isRevived to false and card1 to empty for the revived player
+    getAlivePlayers().forEach((e) => {
+      if (e.isRevived) {
+        e.card1 = "";
+        e.isRevived = false;
+      }
+    });
+  } else {
+    deathRow.forEach((value) => {
+      populateDeadPlayers(value, deadPlayers);
+    });
+  }
 
   return deadPlayers.sort();
 }
@@ -643,6 +664,8 @@ function getThisRoundAction(thisRound, action, playerId) {
     thisRound.poisonReleased = playerId;
   } else if (action === "retract") {
     thisRound.retracted = playerId;
+  } else if (action === "revive") {
+    thisRound.revived = playerId;
   }
   return thisRound;
 }
@@ -675,6 +698,22 @@ function processReleasePoison(playerId) {
     console.log("poisoned player is not 0, assigning poisonReleasedRound to current round");
     inGameLogicVariables.poisonReleasedRound = inGameLogicVariables.round;
     inGameLogicVariables.numberOfPoinsonReleased++;
+  }
+}
+
+function processRevivePlayer(playerId, io) {
+  console.log("entered processRevivePlayer");
+  if (playerId === "0") {
+    noPlayerAction("revive");
+  } else {
+    inGameLogicVariables.revivedRound = inGameLogicVariables.round;
+    playerAction(playerId, "revive");
+    getAlivePlayers().forEach((player) => {
+      if ((player.playerId + 1).toString() === playerId) {
+        player.isRevived = true;
+      }
+    });
+    inGameLogicVariables.isPriestRevived = true;
   }
 }
 
@@ -947,6 +986,7 @@ module.exports = {
   processChooseRevenge,
   processReleasePoison,
   processGunPlayer,
+  processRevivePlayer,
   processRetractSelected,
   isFirstRoundVoting,
   processIncreaseVote,

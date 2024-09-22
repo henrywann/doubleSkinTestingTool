@@ -7,12 +7,15 @@ class InGameLogicVariables {
     this._silencerCount = 0;
     this._bioChemistCount = 0;
     this._turtleCount = 0;
+    this._priestCount = 0;
     this._round = 0;
     this._poisonReleasedRound = 0;
+    this._revivedRound = 0;
     this._noKillerPresent = false;
     this._roundAction = [];
     this._isGunSmithFired = false;
     this._isPoisonCompleted = false;
+    this._isPriestRevived = false;
     this._numberOfPoinsonReleased = 0;
     this._revengeChosen = -1;
     this._revengeCard = -1;
@@ -107,6 +110,20 @@ class InGameLogicVariables {
     }
   }
 
+  // Getter for priestCount
+  get priestCount() {
+    return this._priestCount;
+  }
+
+  // Setter for priestCount
+  set priestCount(value) {
+    if (Number.isInteger(value)) {
+      this._priestCount = value;
+    } else {
+      console.error("priestCount should be an integer");
+    }
+  }
+
   // Getter and Setter for round
   get round() {
     return this._round;
@@ -130,6 +147,18 @@ class InGameLogicVariables {
       console.error("poisonReleasedRound should be an integer");
     }
   }
+
+    // Getter and Setter for poisonReleasedRound
+    get revivedRound() {
+      return this._revivedRound;
+    }
+    set revivedRound(value) {
+      if (Number.isInteger(value)) {
+        this._revivedRound = value;
+      } else {
+        console.error("revivedRound should be an integer");
+      }
+    }
 
   // Getter and Setter for noKillerPresent
   get noKillerPresent() {
@@ -164,6 +193,19 @@ class InGameLogicVariables {
       this._isGunSmithFired = value;
     } else {
       console.error("isGunSmithFired should be a boolean");
+    }
+  }
+
+  // Getter and Setter for isPriestRevived
+  get isPriestRevived() {
+    return this._isPriestRevived;
+  }
+  // Setter for isPriestRevived
+  set isPriestRevived(value) {
+    if (typeof value === 'boolean') {
+      this._isPriestRevived = value;
+    } else {
+      console.error("isPriestRevived should be a boolean");
     }
   }
 
