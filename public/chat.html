@@ -41,6 +41,16 @@
       <!-- <ul id="activateGun"></ul> -->
     </div>
     <div class="gunSmith-container"></div>
+
+    <!-- Chat Box for Questions -->
+    <div class="chat-box-container">
+      <div class="chat-box-header">Ask a Question</div>
+      <div class="chat-box-messages" id="chatBoxMessages"></div>
+      <div class="chat-box-form">
+        <input id="questionInput" type="text" placeholder="Type your question" />
+        <button onclick="sendQuestion()">Ask</button>
+      </div>
+    </div>
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.9.2/qs.min.js"
     integrity="sha256-TDxXjkAUay70ae/QJBEpGKkpVslXaHHayklIVglFRT4="
@@ -48,5 +58,27 @@
   ></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    function sendQuestion() {
+      const question = document.getElementById('questionInput').value;
+      if (question) {
+        // for local testing: http://127.0.0.1:5000/ask
+        fetch('https://double-skin-chat-bot-2c473e2366c6.herokuapp.com/ask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ question }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          const chatBoxMessages = document.getElementById('chatBoxMessages');
+          const messageElement = document.createElement('div');
+          messageElement.textContent = 'Answer: ' + data.answer;
+          chatBoxMessages.appendChild(messageElement);
+        });
+      }
+    }
+  </script>
 </body>
 </html>
