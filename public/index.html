@@ -37,31 +37,40 @@
 							<option value=7>7</option>
 						</select>
 					</div>
-					<div class="form-control">
-						<label for="badIdentities">请选择7人局坏人牌</label>
-						<select name="badIdentities" id="badIdentities" onChange="selectBadIdentitiesFromDropDown()" disabled>
-							<option value=1>杀手，复仇者，禁言</option>
-							<option value=2>杀手，生化学家，禁言</option>
-						</select>
-					</div>
-					<div class="chat-sidebar">
-						<h3><i class="fas fa-users"></i> 好人牌</h3>
-						<ul id="goodCards"></ul>
-					  </div>
-					<button type="submit" class="btn">开始游戏！</button>
+					<button type="submit" id="startGame" class="btn">开始游戏！</button>
 				</form>
 				<br>
-				<button class="actionBtn" id="selectDoctorCard" onclick="selectCard('doctor')"> 医生</button>
-				<button class="actionBtn" id="selectGunSmithCard" onclick="selectCard('gunSmith')"> Gun Smith</button>
-				<button class="actionBtn" id="selectTurtleCard" onclick="selectCard('turtle')"> 乌龟</button>
-				<button class="actionBtn" id="selectPriestCard" onclick="selectCard('priest')"> 牧师</button>
-				<button class="actionBtn" id="selectEngineerCard" onclick="selectCard('engineer')"> 工兵</button>
-				<button class="actionBtn" id="selectJudgeCard" onclick="selectCard('judge')"> 法官</button>
 
+				<div class="chat-sidebar">
+					<h3><i class="fas fa-users"></i> 坏人牌</h3>
+					<ul id="badCards"></ul>
+				</div>
+				<br>
+				<button class="actionBtn" id="selectKiller1Card" onclick="selectBadCard('killer1')"> 杀手</button>
+				<button class="actionBtn" id="selectKiller2Card" onclick="selectBadCard('killer2')"> 杀手</button>
+				<button class="actionBtn" id="selectRevengerCard" onclick="selectBadCard('revenger')"> 复仇者</button>
+				<button class="actionBtn" id="selectBioChemistCard" onclick="selectBadCard('bioChemist')"> 生化学家</button>
+				<button class="actionBtn" id="selectSilencerCard" onclick="selectBadCard('silencer')"> 禁言</button>
+				<br>
+				<br>
+				<div class="chat-sidebar">
+					<h3><i class="fas fa-users"></i> 好人牌</h3>
+					<ul id="goodCards"></ul>
+				</div>
+				<br>
+				<button class="actionBtn" id="selectPolice1Card" onclick="selectGoodCard('police1')"> 警察</button>
+				<button class="actionBtn" id="selectPolice2Card" onclick="selectGoodCard('police2')"> 警察</button>
+				<button class="actionBtn" id="selectDoctorCard" onclick="selectGoodCard('doctor')"> 医生</button>
+				<button class="actionBtn" id="selectGunSmithCard" onclick="selectGoodCard('gunSmith')"> Gun Smith</button>
+				<button class="actionBtn" id="selectTurtleCard" onclick="selectGoodCard('turtle')"> 乌龟</button>
+				<button class="actionBtn" id="selectPriestCard" onclick="selectGoodCard('priest')"> 牧师</button>
+				<button class="actionBtn" id="selectEngineerCard" onclick="selectGoodCard('engineer')"> 工兵</button>
+				<button class="actionBtn" id="selectJudgeCard" onclick="selectGoodCard('judge')"> 法官</button>
+				<button class="actionBtn" id="selectVillagerCard" onclick="selectGoodCard('villager')"> 平民</button>
 			</main>
 		</div>
-
-
+		<br>
+		<br>
 		<div class="game-rules-container">
 			<main class="rules-main">
 				<h2>游戏规则</h2>

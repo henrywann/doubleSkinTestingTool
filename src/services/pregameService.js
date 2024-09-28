@@ -21,8 +21,12 @@ function resetPreGameLogicVariables() {
   gameLogicVariables = new GameLogicVariables();
 }
 
-function getInitialGoodCards() {
+function getGoodCards() {
   return gameLogicVariables.goodPlayerCardList;
+}
+
+function getBadCards() {
+  return gameLogicVariables.badPlayerCardList;
 }
 
 function getInitialNumberOfPlayers() {
@@ -50,23 +54,37 @@ function processSelectGoodCard(card, io) {
     const index = gameLogicVariables.goodPlayerCardList.indexOf(card);
     gameLogicVariables.goodPlayerCardList.splice(index, 1);
   } else {
-    if (gameLogicVariables.goodPlayerCardList.length < 2) {
+    if (gameLogicVariables.goodPlayerCardList.length < 5) {
       gameLogicVariables.goodPlayerCardList.push(card);
-    } else {
     }
   }
-  io.emit("displaySelectedCardsEvent", gameLogicVariables.goodPlayerCardList);
+  const totalNumberOfSelectedCards =
+    gameLogicVariables.goodPlayerCardList.length + gameLogicVariables.badPlayerCardList.length;
+  io.emit("displaySelectedCardsEvent", {
+    goodPlayerCardList: gameLogicVariables.goodPlayerCardList,
+    totalNumberOfSelectedCards: totalNumberOfSelectedCards,
+  });
+}
+
+function processSelectBadCard(card, io) {
+  if (gameLogicVariables.badPlayerCardList.includes(card)) {
+    const index = gameLogicVariables.badPlayerCardList.indexOf(card);
+    gameLogicVariables.badPlayerCardList.splice(index, 1);
+  } else {
+    if (gameLogicVariables.badPlayerCardList.length < 3) {
+      gameLogicVariables.badPlayerCardList.push(card);
+    }
+  }
+  const totalNumberOfSelectedCards =
+    gameLogicVariables.goodPlayerCardList.length + gameLogicVariables.badPlayerCardList.length;
+  io.emit("displaySelectedBadCardsEvent", {
+    badPlayerCardList: gameLogicVariables.badPlayerCardList,
+    totalNumberOfSelectedCards: totalNumberOfSelectedCards,
+  });
 }
 
 function processJoinGame(joinGame, socket, io) {
   console.log("processJoinGame playerlength: ", joinGame.numOfPlayers);
-  if (gameLogicVariables.badGuysCombination === "-1") {
-    if (joinGame.numOfPlayers === "6") {
-      gameLogicVariables.badGuysCombination = "0";
-    } else {
-      gameLogicVariables.badGuysCombination = joinGame.badIdentities;
-    }
-  }
   console.log("gameLogicVariables: ", gameLogicVariables);
   if (joinGame.socketId == null) {
     console.log("joinGame.socketId is null");
@@ -84,64 +102,43 @@ function processJoinGame(joinGame, socket, io) {
       getAllPlayers().push(player);
       io.emit("roomUsers", getAllPlayers());
     }
-  } else {
-    // I don't think refresh is working...
-    // var isRefreshedPlayerReady = false;
-    // console.log(`socket.id: ${socket.id}`);
-    // console.log(`socketId: ${joinGame.socketId}`);
-    // getAlivePlayers().forEach(e => {
-    //     if (e.id === joinGame.socketId) {
-    //         console.log('found refresh player after ready');
-    //         e.id = socket.id;
-    //         // show identity again and update the socketId in session storage in client side
-    //         socket.emit('showIdentity', e);
-    //         isRefreshedPlayerReady = true;
-    //         var role = updateSocketRoomRole(io, e);
-    //         if (joinGame.state==="votePlayer") {
-    //             socket.emit('votePlayer', ({
-    //                 voteThisPlayer: voteblePlayers[joinGame.voteIndex],
-    //                 voteIndex: joinGame.voteIndex,
-    //                 voteblePlayers: voteblePlayers,
-    //                 round: round,
-    //                 isFirstRoundVoting: isFirstRoundVoting
-    //             }));
-    //         }
-    //     }
-    // });
-    // if (!isRefreshedPlayerReady) {
-    //     console.log('found refresh player before ready');
-    //     console.log(allPlayers.length);
-    //     allPlayers.forEach(e => {
-    //         if (e.id===joinGame.socketId) {
-    //             e.id = socket.id;
-    //             socket.emit('showIdentity', e);
-    //         }
-    //     });
-    // }
-  }
+  } 
 }
 
 function playerJoin(id, username, playerLength) {
   console.log("playerLength: ", playerLength);
   if (gameLogicVariables.isNewGame) {
-    var cardConfig;
-    var cardConfigFilePath;
     if (playerLength === "7") {
       console.log("7 player version");
-      // TODO: need to dynamically populate good guy cards
-      if (gameLogicVariables.badGuysCombination === "1") {
-        cardConfigFilePath = "src/resources/cardsSevenPlayerVersion1.json";
-      } else {
-        cardConfigFilePath = "src/resources/cardsSevenPlayerVersion2.json";
-      }
+      let baseCardConfigFilePath = "src/resources/cardsSevenPlayerBase.json";
+      let rawData = fs.readFileSync(baseCardConfigFilePath);
+      let cardConfig = JSON.parse(rawData);
+      cards = cardConfig.cards.concat(gameLogicVariables.goodPlayerCardList, gameLogicVariables.badPlayerCardList);
+      cards = cards.map(card => {
+        if (card === "killer1" || card === "killer2") {
+          return "killer";
+        }
+        if (card === "police1" || card === "police2") {
+          return "police";
+        }
+        return card;
+      });
+
+      let goodPlayerCardListChinese = translateUserSelectedCardsToChinese(gameLogicVariables.goodPlayerCardList);
+      let badPlayerCardListChinese = translateUserSelectedCardsToChinese(gameLogicVariables.badPlayerCardList);
+      cardsChinese = cardConfig.cardsChinese.concat(goodPlayerCardListChinese, badPlayerCardListChinese);
+      console.log("card deck: ", cards);
+      console.log("card deck Chinese: ", cardsChinese);
     } else {
       console.log("6 player version");
-      cardConfigFilePath = "src/resources/cardsSixPlayerVersion.json";
+      let cardConfigFilePath = "src/resources/cardsSixPlayerVersion.json";
+      const rawData = fs.readFileSync(cardConfigFilePath);
+      let cardConfig = JSON.parse(rawData);
+      cards = cardConfig.cards;
+      cardsChinese = cardConfig.cardsChinese;
+      console.log("card deck: ", cards);
+      console.log("card deck Chinese: ", cardsChinese);
     }
-    const rawData = fs.readFileSync(cardConfigFilePath);
-    cardConfig = JSON.parse(rawData);
-    cards = cardConfig.cards;
-    cardsChinese = cardConfig.cardsChinese;
 
     initAlivePlayers();
     // resetInGameLogicVariables();
@@ -155,9 +152,40 @@ function playerJoin(id, username, playerLength) {
   return assignPlayer(id, username, cardsChinese);
 }
 
+function translateUserSelectedCardsToChinese(cardList) {
+  return cardList.map(card => {
+    if (card === "killer1" || card === "killer2") {
+      return "杀手";
+    } else if (card === "police1" || card === "police2") {
+      return "警察";
+    } else if (card === "revenger") {
+      return "复仇者";
+    } else if (card === "bioChemist") {
+      return "生化学家";
+    } else if (card === "silencer") {
+      return "禁言";
+    } else if (card === "doctor") {
+      return "医生";
+    } else if (card === "gunSmith") {
+      return "Gun Smith";
+    } else if (card === "turtle") {
+      return "乌龟";
+    } else if (card === "priest") {
+      return "牧师";
+    } else if (card === "engineer") {
+      return "工兵";
+    } else if (card === "judge") {
+      return "法官";
+    } else if (card === "villager") {
+      return "平民";
+    }
+    return card;
+  });
+}
+
 function assignPlayer(id, username, cardsChinese) {
   // get first card
-  const i = Math.floor(Math.random() * (cards.length));
+  const i = Math.floor(Math.random() * cards.length);
   const card1 = cards[i];
   const cardToBeRevived = card1;
   const card1Chinese = cardsChinese[i];
@@ -165,7 +193,7 @@ function assignPlayer(id, username, cardsChinese) {
   cards.splice(i, 1);
   cardsChinese.splice(i, 1);
   // get second card
-  const j = Math.floor(Math.random() * (cards.length));
+  const j = Math.floor(Math.random() * cards.length);
   // const j =0;
   const card2 = cards[j];
   const card2Chinese = cardsChinese[j];
@@ -213,6 +241,7 @@ function getPlayerSide(card1, card2) {
   map.set("gunSmith", 1);
   map.set("villager", 0);
   map.set("turtle", 1);
+  map.set("priest", 1);
   return map.get(card1) + map.get(card2);
 }
 
@@ -251,7 +280,9 @@ module.exports = {
   processSelectNumberOfPlayers,
   processSelectBadIdentities,
   processSelectGoodCard,
-  getInitialGoodCards,
+  processSelectBadCard,
+  getGoodCards,
+  getBadCards,
   getInitialNumberOfPlayers,
   getInitialBadIdentities,
 };

@@ -11,7 +11,7 @@ ready.addEventListener("click", readyToPlay);
 const restart = document.getElementById("restartBtn");
 restart.addEventListener("click", restartGame);
 
-const { username, numOfPlayers, badIdentities } = Qs.parse(location.search, {
+const { username, numOfPlayers } = Qs.parse(location.search, {
   ignoreQueryPrefix: true,
 });
 socket.on("connect", () => {
@@ -23,7 +23,6 @@ socket.emit(
   (joinGame = {
     username: username,
     numOfPlayers: numOfPlayers,
-    badIdentities: badIdentities,
     socketId: sessionStorage.getItem("socketId"),
     state: sessionStorage.getItem("state"),
     voteIndex: sessionStorage.getItem("voteIndex"),
