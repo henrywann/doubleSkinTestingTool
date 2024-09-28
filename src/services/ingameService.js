@@ -5,9 +5,7 @@ const VotingLogicVariables = require("../repositories/votingLogicRepository");
 var votingLogicVariables = new VotingLogicVariables();
 
 const {
-  initAlivePlayers,
   getAlivePlayers,
-  sortAlivePlayers,
   filteringOutDeadPlayers,
 } = require("../models/alivePlayers");
 
@@ -69,15 +67,20 @@ function proceedToNextNight(io) {
   io.emit("updateCurrentCard", { alivePlayers: getAlivePlayers(), nightOrDay: "turningNight" });
 
   io.emit("message", `天黑请闭眼...第${inGameLogicVariables.round}夜!`);
-  console.log(`badGuysCombination: ${getGameLogicVariables().badGuysCombination}`);
   console.log(`biochemist count: ${inGameLogicVariables.bioChemistCount}`);
   console.log(`poisonReleasedRound during night: ${inGameLogicVariables.poisonReleasedRound}`);
 
-  if (getGameLogicVariables().badGuysCombination === "1") {
+  if (getGameLogicVariables().badPlayerCardList.includes("revenger")) {
     if (inGameLogicVariables.round === 1) {
       io.emit("revengerAction");
+    } else {
+      noPlayerAction("revenge");
     }
-  } else if (getGameLogicVariables().badGuysCombination === "2") {
+  } else {
+    noPlayerAction("revenge");
+  }
+
+  if (getGameLogicVariables().badPlayerCardList.includes("bioChemist")) {
     // bioChemist only able to use ability 2 rounds after first release, and can only use ability twice
     if (
       inGameLogicVariables.round === 1 ||
@@ -99,6 +102,8 @@ function proceedToNextNight(io) {
     } else {
       noPlayerAction("release");
     }
+  } else {
+    noPlayerAction("release");
   }
 
   if (inGameLogicVariables.turtleCount > 0) {
@@ -193,53 +198,20 @@ function noPlayerAction(action) {
   }
 }
 
-// TODO: need to dynamically initialize player actions based on the actual cards
 // Initialize player actions for current night round
 function initializeThisRound() {
   var thisRound = [];
-  if (getGameLogicVariables().badGuysCombination === "0") {
-    // 6 players
-    thisRound = { killed: -1, checked: -1, gunned: -1, injected: -1, silenced: -1 };
-  } else if (getGameLogicVariables().badGuysCombination === "1") {
-    // 7 players: killer, revenger, silencer
-    if (inGameLogicVariables.round === 1) {
-      thisRound = {
-        killed: -1,
-        checked: -1,
-        gunned: -1,
-        injected: -1,
-        silenced: -1,
-        revenged: -1,
-        retracted: -1,
-        revived: -1,
-      };
-    } else {
-      thisRound = {
-        killed: -1,
-        checked: -1,
-        gunned: -1,
-        injected: -1,
-        silenced: -1,
-        retracted: -1,
-        revived: -1,
-      };
-    }
-  } else if (getGameLogicVariables().badGuysCombination === "2") {
-    // 7 players: killer, bioChem, silencer
-    thisRound = {
-      killed: -1,
-      checked: -1,
-      gunned: -1,
-      injected: -1,
-      silenced: -1,
-      poisonReleased: -1,
-      retracted: -1,
-      revived: -1,
-    };
-  } else {
-    console.error("globalBadIdentities is not valid!!!");
-    console.log("gameLogicVariables: ", getGameLogicVariables());
-  }
+  thisRound = {
+    killed: -1,
+    checked: -1,
+    gunned: -1,
+    injected: -1,
+    silenced: -1,
+    revenged: -1,
+    retracted: -1,
+    revived: -1,
+    poisonReleased: -1,
+  };
   return thisRound;
 }
 
@@ -260,6 +232,8 @@ function getThisRoundNoAction(thisRound, action) {
     thisRound.retracted = 0;
   } else if (action === "revive") {
     thisRound.revived = 0;
+  } else if (action === "revenge") {
+    thisRound.revenged = 0;
   }
   return thisRound;
 }
@@ -270,52 +244,21 @@ function isRoundOver() {
     // all gods are present
     return false;
   }
-  // TODO; need to dynamically check if all the actions are performed based on the cards selected
-  if (getGameLogicVariables().badGuysCombination === "0" || getGameLogicVariables().badGuysCombination === "1") {
-    // 6 players, or 7 players with revenger
-    if (
-      currentRound.killed !== -1 &&
-      currentRound.checked !== -1 &&
-      currentRound.injected !== -1 &&
-      currentRound.gunned !== -1 &&
-      currentRound.silenced !== -1 &&
-      currentRound.retracted !== -1 &&
-      currentRound.revived !== -1
-    ) {
-      console.log(
-        `killed: ${currentRound.killed}, checked: ${currentRound.checked}, gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}, revived: ${currentRound.revived}`
-      );
-      if (inGameLogicVariables.round === 1 && getGameLogicVariables().playerLength === "7") {
-        console.log(`revenged: ${currentRound.revenged}`);
-        // console.log('round over condition: ', currentRound.revenged !== -1);
-        return currentRound.revenged !== -1;
-      } else {
-        return true;
-      }
-    } else {
-      return false;
-    }
-  } else if (getGameLogicVariables().badGuysCombination === "2") {
-    // 7 players with bioChemist
-    if (
-      currentRound.killed !== -1 &&
-      currentRound.checked !== -1 &&
-      currentRound.injected !== -1 &&
-      currentRound.gunned !== -1 &&
-      currentRound.silenced !== -1 &&
-      currentRound.poisonReleased !== -1 &&
-      currentRound.retracted !== -1 &&
-      currentRound.revived !== -1
-    ) {
-      console.log(`killed: ${currentRound.killed}, checked: ${currentRound.checked}, gunned: ${currentRound.gunned}, injected: ${currentRound.injected}, silenced: ${currentRound.silenced}, revived: ${currentRound.revived}
-        poisoned: ${currentRound.poisonReleased}`);
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    console.error("globalBadIdentities is not valid!!!");
-  }
+
+  console.log("current round action status: ", currentRound);
+
+  return (
+    currentRound.killed !== -1 &&
+    currentRound.checked !== -1 &&
+    currentRound.injected !== -1 &&
+    currentRound.gunned !== -1 &&
+    currentRound.silenced !== -1 &&
+    currentRound.poisonReleased !== -1 &&
+    currentRound.retracted !== -1 &&
+    currentRound.revived !== -1 &&
+    currentRound.revenged !== -1
+  );
+  
 }
 
 /**
@@ -738,7 +681,10 @@ function processGunPlayer(playerId, isVotingRound, io) {
       if (votingLogicVariables.gunnedPlayerDuringVoting === inGameLogicVariables.revengeChosen.toString()) {
         getAlivePlayers().forEach((element) => {
           if ((element.playerId + 1).toString() === votingLogicVariables.gunnedPlayerDuringVoting) {
-            if ((inGameLogicVariables.revengeCard === 1 && element.card1 === "") || (inGameLogicVariables.revengeCard === 2 && element.card2 === "")) {
+            if (
+              (inGameLogicVariables.revengeCard === 1 && element.card1 === "") ||
+              (inGameLogicVariables.revengeCard === 2 && element.card2 === "")
+            ) {
               console.log("activate revenger");
               activateRevenager();
             }

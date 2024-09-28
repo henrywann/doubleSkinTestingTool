@@ -1,16 +1,16 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto&display=swap');
 
 :root {
-	--dark-color-a: #667aff;
-	--dark-color-b: #7386ff;
-	--dark-theme-dark-color-a: #182891;
-	--dark-theme-dark-color-b: #3648bd;
+	--dark-color-a: #667affea;
+	--dark-color-b: #7386ffe1;
+	--dark-theme-dark-color-a: #182c91;
+	--dark-theme-dark-color-b: #4252b9;
 	--light-color: #e6e9ff;
 	--success-color: #5cb85c;
 	--error-color: #d9534f;
 	--black-color-font: #063c7a;
-	--dark-theme-background-color: #021020;
-	--dark-theme-chat-color: #041e3b;
+	--dark-theme-background-color: #05192f;
+	--dark-theme-chat-color: #062a52;
 }
 
 * {
@@ -95,7 +95,7 @@ a {
 .chat-sidebar {
 	background: var(--dark-theme-dark-color-b);
 	color: #fff;
-	padding: 20px 20px 60px;
+	padding: 20px 20px 20px;
 	overflow-y: scroll;
 	scrollbar-width: none; /* Firefox */
 	-ms-overflow-style: none; /* IE 10+ */
@@ -195,7 +195,7 @@ a {
 .chat-form-container {
 	padding: 20px 30px;
 	height: 120px;
-	background-color: rgb(57, 43, 180);
+	background-color: rgb(84, 75, 167);
 }
 
 .chat-form-container form {
@@ -212,7 +212,7 @@ a {
 .gunSmith-container {
 	padding: 20px 30px;
 	height: 40px;
-	background-color: rgb(57, 43, 180);
+	background-color: rgb(84, 75, 167);
 	border-bottom-left-radius: 5px;
     border-bottom-right-radius: 5px;
 }
@@ -261,9 +261,30 @@ a {
 /* Join Page */
 .join-container {
 	max-width: 500px;
-	height: 700px;
+	height: 900px;
 	margin: 80px auto;
 	color: #fff;
+}
+
+.join-container button {
+	border: 1px solid #0066cc;
+  	background-color: #0099cc;
+  	color: #ffffff;
+  	padding: 5px 10px;
+}
+
+.join-container button:hover {
+	border: 1px solid #0099cc;
+	background-color: #00aacc;
+	color: #ffffff;
+	padding: 5px 10px;
+}
+
+.join-container button:disabled,
+button[disabled]{
+  border: 1px solid #999999;
+  background-color: #cccccc;
+  color: #666666;
 }
 
 .game-rules-container {

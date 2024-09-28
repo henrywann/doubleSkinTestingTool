@@ -5,6 +5,7 @@ class GameLogicVariables {
     this._badGuysCombination = "-1";
     this._numberOfPlayers = "6";
     this._goodPlayerCardList = [];
+    this._badPlayerCardList = [];
     this._isNewGame = true;
   }
 
@@ -27,9 +28,7 @@ class GameLogicVariables {
     if (!isNaN(value)) {
       this._playerLength = value.toString();
     } else {
-      console.error(
-        "playerLength should be a number or a string that can be converted to a number"
-      );
+      console.error("playerLength should be a number or a string that can be converted to a number");
     }
   }
 
@@ -43,9 +42,7 @@ class GameLogicVariables {
     if (!isNaN(value)) {
       this._badGuysCombination = value.toString();
     } else {
-      console.error(
-        "badGuysCombination should be a number or a string that can be converted to a number"
-      );
+      console.error("badGuysCombination should be a number or a string that can be converted to a number");
     }
   }
 
@@ -64,9 +61,7 @@ class GameLogicVariables {
     if (!isNaN(value)) {
       this._numberOfPlayers = value.toString();
     } else {
-      console.error(
-        "numberOfPlayers should be a number or a string that can be converted to a number"
-      );
+      console.error("numberOfPlayers should be a number or a string that can be converted to a number");
     }
   }
 
@@ -82,6 +77,20 @@ class GameLogicVariables {
   // Getter for goodPlayerCardList
   get goodPlayerCardList() {
     return this._goodPlayerCardList;
+  }
+
+  // Setter for goodPlayerCardList
+  set badPlayerCardList(value) {
+    if (Array.isArray(value)) {
+      this._badPlayerCardList = value;
+    } else {
+      console.error("badPlayerCardList should be an array");
+    }
+  }
+
+  // Getter for badPlayerCardList
+  get badPlayerCardList() {
+    return this._badPlayerCardList;
   }
 
   // Setter for isNewGame

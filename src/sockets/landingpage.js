@@ -8,7 +8,9 @@ const {
   processJoinGame,
   processPlayerReady,
   processSelectGoodCard,
-  getInitialGoodCards,
+  processSelectBadCard,
+  getGoodCards,
+  getBadCards,
   getInitialNumberOfPlayers,
   getInitialBadIdentities,
   processIsAnyoneJoinedGame,
@@ -50,10 +52,13 @@ module.exports = function (server) {
     socket.on("disconnect", () => {
       console.log("disconnected");
     });
-    // socket.on('joinGame', ({username, numOfPlayers, badIdentities, socketId, state, voteIndex})
     socket.on("joinGame", (joinGame) => {
       console.log("JoinGame object: ", joinGame);
-      io.emit("disableGameSelections");
+      io.emit("disableGameSelections", {
+        goodPlayerCardList: getGoodCards(),
+        badPlayerCardList: getBadCards(),
+        numberOfPlayers: getInitialNumberOfPlayers(),
+      });
       processJoinGame(joinGame, socket, io);
     });
 
@@ -65,15 +70,34 @@ module.exports = function (server) {
     });
 
     socket.on("initialGoodCards", () => {
-      console.log("returning inital good cards");
-      const initialGoodCards = getInitialGoodCards();
-      io.emit("displaySelectedCardsEvent", initialGoodCards);
+      const initialGoodCards = getGoodCards();
+      const initialBadCards = getBadCards();
+      const totalNumberOfSelectedCards = initialGoodCards.length + initialBadCards.length;
+      io.emit("displaySelectedCardsEvent", {
+        goodPlayerCardList: initialGoodCards,
+        totalNumberOfSelectedCards: totalNumberOfSelectedCards,
+      });
+    });
+
+    socket.on("initialBadCards", () => {
+      console.log("returning inital bad cards");
+      const initialGoodCards = getGoodCards();
+      const initialBadCards = getBadCards();
+      const totalNumberOfSelectedCards = initialGoodCards.length + initialBadCards.length;
+      io.emit("displaySelectedBadCardsEvent", {
+        badPlayerCardList: initialBadCards,
+        totalNumberOfSelectedCards: totalNumberOfSelectedCards,
+      });
     });
 
     socket.on("isAnyoneJoinedGame", () => {
       console.log("checking isAnyoneJoinedGame");
       if (processIsAnyoneJoinedGame()) {
-        io.emit("disableGameSelections");
+        io.emit("disableGameSelections", {
+          goodPlayerCardList: getGoodCards(),
+          badPlayerCardList: getBadCards(),
+          numberOfPlayers: getInitialNumberOfPlayers(),
+        });
       }
     });
 
@@ -91,6 +115,10 @@ module.exports = function (server) {
 
     socket.on("selectGoodCard", (card) => {
       processSelectGoodCard(card, io);
+    });
+
+    socket.on("selectBadCard", (card) => {
+      processSelectBadCard(card, io);
     });
 
     socket.on("selectNumberOfPlayers", (numOfPlayers) => {
@@ -299,4 +327,3 @@ module.exports = function (server) {
     });
   });
 };
-
