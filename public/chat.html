@@ -45,9 +45,9 @@
     <!-- Chat Box for Questions -->
     <div class="chat-box-container">
       <div class="chat-box-header">Ask a Question</div>
-      <div class="chat-box-messages" id="chatBoxMessages"></div>
+      <ul class="chat-box-messages" id="chatBoxMessages"></ul>
       <div class="chat-box-form">
-        <input id="questionInput" type="text" placeholder="Type your question" />
+        <input id="questionInput" type="text" placeholder="Type your question" autocomplete="off" />
         <button onclick="sendQuestion()">Ask</button>
       </div>
     </div>
@@ -59,10 +59,37 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="js/main.js"></script>
   <script>
+    // Add an event listener for the "Enter" keypress
+    document.getElementById('questionInput').addEventListener('keypress', function (e) {
+      if (e.key === 'Enter') {
+        sendQuestion(); // Trigger the sendQuestion function when Enter is pressed
+      }
+    });
+
     function sendQuestion() {
       const question = document.getElementById('questionInput').value;
       if (question) {
+        // create a new list item for question block
+        const questionBlockElement = document.createElement('li');
+        questionBlockElement.classList.add('question-block');
+
+        // Create a new list item for question message
+        const questionMessageElement = document.createElement('li');
+        questionMessageElement.classList.add('user-chat-message');
+        questionMessageElement.textContent = question;
+
+        // Append question message to question block
+        questionBlockElement.appendChild(questionMessageElement);
+
+        // Append question block to the chat box
+        const chatBoxMessages = document.getElementById('chatBoxMessages');
+        chatBoxMessages.appendChild(questionBlockElement);
+
+        // Clear the input field
+        document.getElementById('questionInput').value = "";
+
         // for local testing: http://127.0.0.1:5000/ask
+        // heroku: https://double-skin-chat-bot-2c473e2366c6.herokuapp.com/ask
         fetch('https://double-skin-chat-bot-2c473e2366c6.herokuapp.com/ask', {
           method: 'POST',
           headers: {
@@ -72,10 +99,23 @@
         })
         .then(response => response.json())
         .then(data => {
-          const chatBoxMessages = document.getElementById('chatBoxMessages');
-          const messageElement = document.createElement('div');
-          messageElement.textContent = 'Answer: ' + data.answer;
-          chatBoxMessages.appendChild(messageElement);
+          console.log('Received response', data.answer);
+
+          // Create a new list item for answer block
+          const answerBlockElement = document.createElement('li');
+          answerBlockElement.classList.add('answer-block');
+
+
+          // Create a new list item for answer message
+          const answerMessageElement = document.createElement('li');
+          answerMessageElement.classList.add('server-chat-message');
+          answerMessageElement.textContent = data.answer;
+
+          // Append the answer message to the answer block
+          answerBlockElement.appendChild(answerMessageElement);
+
+          // Append the answer block to the chat box
+          chatBoxMessages.appendChild(answerBlockElement);
         });
       }
     }
